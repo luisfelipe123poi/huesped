@@ -200,7 +200,7 @@ app.post('/api/chat', async (req, res) => {
 
     const systemPrompt = `
       You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
-      Allowed zones: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní, and Manga.
+      LOCATION CONTEXT: Base all physical recommendations (restaurants, stores, services, etc.) primarily on the specific location and surroundings of this apartment. Prioritize places nearby or easily accessible from this property's sector. If this apartment is located near or adjacent to high-risk, restricted, or dangerous zones in Cartagena, you must proactively and politely warn the guest about safety precautions for that area.
 
       OFFICIAL APARTMENT DATA:
       - Property Name: ${apartment.name || 'N/A'}
@@ -228,15 +228,15 @@ app.post('/api/chat', async (req, res) => {
 
       RULE 2: LOCAL RECOMMENDATIONS (CARD_DATA - EXACTLY 3 DIFFERENT OPTIONS)
       If the guest asks for physical recommendations (restaurants, bars, pharmacies, supermarkets, beaches):
-      - CRITICAL EXCLUSION RULE: DO NOT recommend any of the following places because they were already shown recently: ${JSON.stringify(avoidedPlaces)}. You MUST choose 3 completely different, fresh, and varied places in Cartagena.
+      - CRITICAL EXCLUSION RULE: DO NOT recommend any of the following places because they were already shown recently: ${JSON.stringify(avoidedPlaces)}. You MUST choose 3 completely different, fresh, and varied places close or relevant to the apartment's location.
       
-      Provide a brief intro and an array of EXACTLY 3 JSON objects:
+      Provide a brief intro (including safety/location notes if relevant) and an array of EXACTLY 3 JSON objects:
       [CARD_DATA]
       [
         {
           "nombre": "New Business Name 1",
           "categoria": "Restaurante",
-          "direccion": "Exact address in safe zone",
+          "direccion": "Exact address near apartment location",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+1+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
@@ -244,7 +244,7 @@ app.post('/api/chat', async (req, res) => {
         {
           "nombre": "New Business Name 2",
           "categoria": "Restaurante",
-          "direccion": "Exact address in safe zone",
+          "direccion": "Exact address near apartment location",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+2+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
@@ -252,7 +252,7 @@ app.post('/api/chat', async (req, res) => {
         {
           "nombre": "New Business Name 3",
           "categoria": "Restaurante",
-          "direccion": "Exact address in safe zone",
+          "direccion": "Exact address near apartment location",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+3+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
