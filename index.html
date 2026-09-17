@@ -52,7 +52,7 @@
           <i data-lucide="building-2" class="w-4 h-4"></i>
         </div>
         <div>
-          <h1 id="guest-app-title" class="text-sm font-bold text-white leading-tight">Ocean View 1204</h1>
+          <h1 id="guest-app-title" class="text-sm font-bold text-white leading-tight">Cargando...</h1>
           <p class="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Concierge Activo
           </p>
@@ -241,8 +241,8 @@
             <i data-lucide="wifi" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] text-slate-400 font-medium">Red WiFi</p>
-            <p id="guest-wifi-name" class="text-xs font-bold text-slate-200 truncate">No configurado</p>
+            <p class="text-[10px] text-slate-400 font-medium">Configuración Wi-Fi</p>
+            <p id="guest-wifi-name" class="text-xs font-bold text-slate-200 truncate">Cargando...</p>
           </div>
         </div>
         <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex items-center gap-3">
@@ -250,10 +250,27 @@
             <i data-lucide="key-round" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] text-slate-400 font-medium">Configuración</p>
-            <p id="guest-wifi-pass" class="text-xs font-bold text-slate-200 truncate">Ver detalles</p>
+            <p class="text-[10px] text-slate-400 font-medium">Asistencia</p>
+            <p class="text-xs font-bold text-emerald-400 truncate">24/7 Disponible</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- INSTRUCCIONES Y REGLAS DINÁMICAS DESDE LA BD -->
+    <section class="space-y-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i> Instrucciones de Llegada
+        </h3>
+        <p id="guest-instructions" class="text-xs text-slate-300 whitespace-pre-line">Cargando instrucciones...</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i> Reglas de la Casa
+        </h3>
+        <p id="guest-rules" class="text-xs text-slate-300 whitespace-pre-line">Cargando reglas...</p>
       </div>
     </section>
 
@@ -268,7 +285,7 @@
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-2 shadow-lg">
-        <input type="text" id="ai-chat-input" placeholder="¿Cómo funciona el aire acondicionado?..." class="bg-transparent flex-1 text-xs text-white placeholder-slate-500 focus:outline-none px-2">
+        <input type="text" id="ai-chat-input" placeholder="Pregúntame sobre el apartamento..." class="bg-transparent flex-1 text-xs text-white placeholder-slate-500 focus:outline-none px-2">
         <button onclick="sendAiMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl transition-colors shadow-md shadow-indigo-600/30">
           <i data-lucide="send" class="w-4 h-4"></i>
         </button>
@@ -314,19 +331,6 @@
           <span class="text-[10px] font-medium text-slate-300">Farmacia</span>
         </button>
       </div>
-
-      <button onclick="triggerDiscovery('Recomendación IA')" class="w-full bg-slate-900 hover:bg-slate-800/80 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors">
-        <div class="flex items-center gap-3">
-          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-xl">
-            <i data-lucide="compass" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-white">¿No sabes qué hacer?</p>
-            <p class="text-[10px] text-slate-400">Pídele una recomendación a la IA según tu ánimo</p>
-          </div>
-        </div>
-        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
-      </button>
     </section>
 
     <!-- MOTOR 3: SOLICITAR AYUDA / SERVICIOS DE LA ESTANCIA -->
@@ -347,16 +351,6 @@
           </div>
         </button>
 
-        <button onclick="requestService('Limpieza de apartamento', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
-          <div class="p-2 bg-blue-500/10 text-blue-400 rounded-xl">
-            <i data-lucide="sparkle" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-white">Limpieza</p>
-            <p class="text-[10px] text-slate-400">Programar aseo</p>
-          </div>
-        </button>
-
         <button onclick="requestService('Reporte de falla técnica', 'issue')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
           <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
             <i data-lucide="wrench" class="w-4 h-4"></i>
@@ -364,16 +358,6 @@
           <div>
             <p class="text-xs font-bold text-white">Soporte</p>
             <p class="text-[10px] text-slate-400">Reportar falla</p>
-          </div>
-        </button>
-
-        <button onclick="requestService('Instrucciones de Checkout solicitadas', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
-          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-white">Checkout</p>
-            <p class="text-[10px] text-slate-400">Instrucciones salida</p>
           </div>
         </button>
       </div>
@@ -406,7 +390,7 @@
     </div>
   </nav>
 
-  <!-- MODAL: REGISTRAR NUEVA PROPIEDAD (CON GENERACIÓN DE QR Y URL DINÁMICA) -->
+  <!-- MODAL: REGISTRAR NUEVA PROPIEDAD -->
   <div id="propertyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -422,34 +406,28 @@
       <form id="propertyForm" onsubmit="createProperty(event)" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Propiedad / Edificio *</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Propiedad *</label>
             <input type="text" id="propName" required placeholder="Ej: Ocean View" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Número o ID de Apartamento *</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1">ID de Apartamento *</label>
             <input type="text" id="propId" required placeholder="Ej: 1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Red Wi-Fi (SSID)</label>
-            <input type="text" id="propWifiName" placeholder="Ej: Ocean_Guest_1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Contraseña Wi-Fi</label>
-            <input type="text" id="propWifiPass" placeholder="Ej: welcome1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Configuración Wi-Fi (Red / Pass)</label>
+          <input type="text" id="propWifiName" placeholder="Ej: Red_1204 / Pass123" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Instrucciones de Llegada y Check-in (para el Cliente y la IA)</label>
-          <textarea id="propInstructions" rows="2" placeholder="Ej: Entregar llave en recepción o usar cerradura inteligente código 1234..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Instrucciones de Llegada y Check-in</label>
+          <textarea id="propInstructions" rows="2" placeholder="Ej: Usar cerradura inteligente código 1234..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Recomendaciones Locales / Reglas (Base de conocimiento para la IA)</label>
-          <textarea id="propRules" rows="2" placeholder="Ej: No fumar en el balcón, aire acondicionado debe apagarse al salir..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Reglas de la Casa</label>
+          <textarea id="propRules" rows="2" placeholder="Ej: No fumar en el balcón..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
         <div class="pt-3 flex justify-end gap-3 border-t border-slate-800">
@@ -475,7 +453,7 @@
       </div>
 
       <div class="space-y-2 text-left">
-        <label class="block text-xs font-medium text-slate-400">Enlace directo (para enviar por WhatsApp):</label>
+        <label class="block text-xs font-medium text-slate-400">Enlace directo:</label>
         <div class="flex gap-2">
           <input type="text" id="guestUrlInput" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono focus:outline-none">
           <button onclick="copyGuestUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition-colors flex items-center justify-center" title="Copiar enlace">
@@ -484,31 +462,17 @@
         </div>
       </div>
 
-      <div class="flex gap-2 pt-2">
-        <button onclick="simulatedOpenGuestView()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-colors">
-          Probar Vista Huésped
-        </button>
-        <button onclick="toggleQrModal(false)" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-xl transition-colors">
-          Cerrar
-        </button>
-      </div>
+      <button onclick="toggleQrModal(false)" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-xl transition-colors">
+        Cerrar
+      </button>
     </div>
   </div>
 
-  <!-- SCRIPT DE INTEGRACIÓN TOTAL (BACKEND + AMBAS VISTAS) -->
+  <!-- SCRIPT DE INTEGRACIÓN TOTAL CON FETCH REAL -->
   <script>
     lucide.createIcons();
 
-    const API_URL = 'https://huesped.onrender.com/api';
     const ownerId = 'luis_castellar_admin';
-    
-    // Estado activo actual para la simulación del huésped
-    let currentActiveApartment = {
-      name: "Ocean View 1204",
-      apartment_id: "1204",
-      wifi_config: "Ocean_Guest_1204 / Pass: beach2026",
-      guest_url: window.location.href
-    };
 
     function switchView(view) {
       const hostHeader = document.getElementById('host-header');
@@ -555,12 +519,7 @@
           qrContainer.innerHTML = `<img src="${qrUrl}" alt="Código QR Huésped" class="w-48 h-48 object-contain mx-auto">`;
         } else {
           const encodedUrl = encodeURIComponent(guestUrl);
-          qrContainer.innerHTML = `
-            <div class="space-y-2">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodedUrl}" alt="QR Code" class="mx-auto w-40 h-40">
-              <a href="${guestUrl}" target="_blank" class="text-indigo-400 underline text-[11px] font-medium block truncate">${guestUrl}</a>
-            </div>
-          `;
+          qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodedUrl}" alt="QR Code" class="mx-auto w-40 h-40">`;
         }
         modal.classList.remove('hidden');
       } else {
@@ -576,52 +535,38 @@
       alert('¡Enlace copiado al portapapeles!');
     }
 
-    function simulatedOpenGuestView() {
-      toggleQrModal(false);
-      switchView('guest');
-    }
-
     async function createProperty(event) {
       event.preventDefault();
       
       const name = document.getElementById('propName').value;
       const apartment_id = document.getElementById('propId').value;
-      const wifi_name = document.getElementById('propWifiName').value;
-      const wifi_pass = document.getElementById('propWifiPass').value;
+      const wifi_config = document.getElementById('propWifiName').value;
       const instructions = document.getElementById('propInstructions').value;
       const rules = document.getElementById('propRules').value;
 
       try {
-        const res = await fetch(`${API_URL}/owner/properties`, {
+        const res = await fetch(`/api/owner/properties`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ownerId,
-            name: `${name} ${apartment_id}`,
-            apartment_id,
-            wifi_config: wifi_name ? `${wifi_name} / Pass: ${wifi_pass}` : 'No configurado',
-            instructions,
-            rules
-          })
+          body: JSON.stringify({ ownerId, name, apartment_id, wifi_config, instructions, rules })
         });
 
-        const data = await res.json();
         if (res.ok) {
-          alert('¡Propiedad creada con éxito y contexto sincronizado con la IA!');
+          alert('¡Propiedad creada con éxito y QR generado!');
           toggleModal(false);
           loadDashboardData();
         } else {
-          alert(data.error || 'Error al crear la propiedad');
+          alert('Error al crear la propiedad');
         }
       } catch (err) {
         console.error('Error de red:', err);
-        alert('No se pudo conectar con el servidor para registrar la propiedad.');
+        alert('No se pudo conectar con el servidor.');
       }
     }
 
     async function loadDashboardData() {
       try {
-        const res = await fetch(`${API_URL}/owner/dashboard/${ownerId}`);
+        const res = await fetch(`/api/owner/dashboard/${ownerId}`);
         if (!res.ok) throw new Error('Error al conectar con el servidor');
         const data = await res.json();
         
@@ -633,14 +578,12 @@
 
         let allTickets = [];
         let propertyCount = data.dashboard ? data.dashboard.length : 0;
-
         document.getElementById('kpi-properties').innerText = propertyCount;
 
         if(data.dashboard && data.dashboard.length > 0) {
           data.dashboard.forEach(apt => {
             const safeName = apt.name.replace(/'/g, "\\'");
             const safeQr = apt.qr_code || '';
-            // OPCIÓN 2 IMPLEMENTADA AQUÍ: Apunta limpiamente a la raíz con ?id=...
             const safeUrl = apt.guest_url || `${window.location.origin}/?id=${apt.apartment_id}`;
 
             aptTableBody.innerHTML += `
@@ -672,91 +615,92 @@
             }
           });
         } else {
-          aptTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">No hay propiedades registradas para este anfitrión.</td></tr>`;
+          aptTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">No hay propiedades registradas.</td></tr>`;
         }
 
         document.getElementById('kpi-tickets').innerText = allTickets.length;
 
         if(allTickets.length === 0) {
-          ticketsContainer.innerHTML = `
-            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 text-center text-xs text-slate-400">
-              🎉 ¡Excelente! No hay tickets ni incidencias pendientes en este momento.
-            </div>
-          `;
+          ticketsContainer.innerHTML = `<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 text-center text-xs text-slate-400">🎉 ¡Excelente! No hay incidencias pendientes.</div>`;
         } else {
           allTickets.forEach(ticket => {
-            const badgeColor = ticket.type === 'issue' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-            const typeLabel = ticket.type === 'issue' ? 'Urgente / Falla' : 'Solicitud';
-
             ticketsContainer.innerHTML += `
-              <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="space-y-1">
-                  <div class="flex items-center gap-2">
-                    <span class="${badgeColor} text-xs px-2.5 py-0.5 rounded-full border font-medium">${typeLabel}</span>
-                    <span class="font-semibold text-white">${ticket.apartmentName}</span>
-                    <span class="text-slate-500 text-xs">• ${ticket.category}</span>
-                  </div>
-                  <p class="text-slate-300 text-sm">${ticket.description}</p>
-                </div>
+              <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
                 <div>
-                  <button onclick="alert('Atendiendo solicitud de ${ticket.apartmentName}...');" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg transition-colors shadow-lg shadow-indigo-600/20 w-full sm:w-auto">
-                    Atender Solicitud
-                  </button>
+                  <p class="font-semibold text-white text-xs">${ticket.apartmentName}</p>
+                  <p class="text-slate-300 text-sm">${ticket.description}</p>
                 </div>
               </div>
             `;
           });
         }
-
         lucide.createIcons();
       } catch (error) {
-        console.error('Error cargando el dashboard del anfitrión:', error);
-        document.getElementById('tickets-container').innerHTML = `
-          <div class="bg-rose-950/30 border border-rose-500/30 rounded-xl p-4 text-center text-xs text-rose-400">
-            Error conectando con el servidor backend. Asegúrate de que el servidor esté activo.
-          </div>
-        `;
+        console.error('Error cargando el dashboard:', error);
       }
     }
 
-    // Funciones interactivas para la vista de Huésped
-    function sendAiMessage() {
+    // Funciones de IA y Servicios del Huésped
+    async function sendAiMessage() {
       const input = document.getElementById('ai-chat-input');
-      if (!input.value.trim()) return;
-      alert(`[Concierge IA]: He recibido tu consulta: "${input.value}". Un agente virtual procesará tu respuesta de inmediato.`);
-      input.value = '';
+      const message = input.value.trim();
+      const urlParams = new URLSearchParams(window.location.search);
+      const apartment_id = urlParams.get('id');
+
+      if (!message || !apartment_id) return;
+      
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apartment_id, message })
+        });
+        const data = await res.json();
+        alert(`[IA Concierge]: ${data.response || data.error}`);
+        input.value = '';
+      } catch (e) {
+        alert('Error al comunicarse con la IA');
+      }
     }
 
     function triggerDiscovery(category) {
-      alert(`[Discovery IA]: Buscando los mejores sitios de la categoría "${category}" cerca de tu ubicación actual en Google Maps...`);
+      alert(`[Discovery]: Buscando "${category}" cerca de tu ubicación...`);
     }
 
     function requestService(serviceName, type) {
-      alert(`[Servicios de Estancia]: Tu solicitud de "${serviceName}" ha sido enviada al anfitrión exitosamente.`);
+      alert(`[Servicios]: Solicitud de "${serviceName}" enviada con éxito.`);
     }
 
     function focusChat() {
       const chatInput = document.getElementById('ai-chat-input');
-      if(chatInput) {
-        chatInput.focus();
-        chatInput.scrollIntoView({ behavior: 'smooth' });
-      }
+      if(chatInput) { chatInput.focus(); chatInput.scrollIntoView({ behavior: 'smooth' }); }
     }
 
-    // Cargar datos iniciales al iniciar y verificar parámetros en URL (?id=...)
-    window.addEventListener('DOMContentLoaded', () => {
+    // CARGA AUTOMÁTICA AL DETECTAR PARÁMETRO ?id=... EN LA URL
+    window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const aptId = urlParams.get('id') || urlParams.get('apt');
+      const aptId = urlParams.get('id');
 
       if (aptId) {
-        // Si entra un huésped con parámetro, cargamos su vista directamente
         switchView('guest');
-        // Opcional: Podrías hacer un fetch al backend para traer los datos reales del aptId si lo deseas
-        document.getElementById('guest-app-title').innerText = `Apartamento ID: ${aptId}`;
-        document.getElementById('guest-welcome-subtitle').innerText = `Bienvenido al apartamento ${aptId}. Disfruta tu estancia.`;
+        try {
+          const res = await fetch(`/api/apartment/${aptId}`);
+          if (res.ok) {
+            const apt = await res.json();
+            document.getElementById('guest-app-title').innerText = apt.name;
+            document.getElementById('guest-welcome-title').innerText = `¡Hola en ${apt.name}! 👋`;
+            document.getElementById('guest-wifi-name').innerText = apt.wifi_config || 'No especificado';
+            document.getElementById('guest-instructions').innerText = apt.instructions || 'Sin instrucciones registradas.';
+            document.getElementById('guest-rules').innerText = apt.rules || 'Sin reglas registradas.';
+          } else {
+            document.getElementById('guest-app-title').innerText = "Apartamento no encontrado";
+          }
+        } catch (err) {
+          console.error("Error al cargar datos del apartamento:", err);
+        }
+      } else {
+        loadDashboardData();
       }
-
-      loadDashboardData();
     });
   </script>
 </body>
