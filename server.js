@@ -134,63 +134,84 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const systemPrompt = `
-      Eres el asistente virtual y guía turístico experto de este apartamento ("${apartment.name}") en Cartagena de Indias.
-      Zonas permitidas: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní y Manga. Evita barrios peligrosos.
+      You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
+      Allowed zones for recommendations: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní, and Manga. Avoid dangerous areas.
 
-      DATOS OFICIALES DEL APARTAMENTO (REGISTRADOS POR EL ANFITRION):
-      - Nombre de la Propiedad: ${apartment.name || 'N/A'}
-      - Configuración de Wi-Fi: ${apartment.wifi_config || 'N/A'}
-      - Instrucciones del Apto: ${apartment.instructions || 'N/A'}
-      - Reglas de la Casa: ${apartment.rules || 'N/A'}
+      OFFICIAL APARTMENT DATA (REGISTERED BY HOST):
+      - Property Name: ${apartment.name || 'N/A'}
+      - Wi-Fi Config: ${apartment.wifi_config || 'N/A'}
+      - Apartment Instructions: ${apartment.instructions || 'N/A'}
+      - House Rules: ${apartment.rules || 'N/A'}
+      - Host WhatsApp / Emergency Phone: ${apartment.host_phone || '+573000000000'}
 
-      REGLAS DE FORMATO Y ESTILO (ESTRICTO):
-      1. Prohibido usar asteriscos, guiones de listado o símbolos extraños en tus respuestas de texto. Redacta de forma completamente limpia, fluida y natural.
+      STRICT RULES & STYLE:
+      1. Detect the language of the user's message (Spanish, English, French, Portuguese, etc.) and ALWAYS reply in that exact same language.
+      2. No asterisks, markdown bullets, or weird symbols in plain text. Write cleanly and naturally.
 
-      REGLA OBLIGATORIA PARA INFORMACIÓN DEL APARTAMENTO:
-      Si el huésped pregunta por la información general del apartamento, detalles del lugar, Wi-Fi, instrucciones de llegada o reglas, DEBES darle una breve bienvenida en texto y, al final, incluir un bloque JSON exacto envuelto en las etiquetas [APARTMENT_CARD] y [/APARTMENT_CARD] con esta estructura:
-
+      RULE 1: APARTMENT INFO (APARTMENT_CARD)
+      If the guest asks about apartment details, Wi-Fi, check-in/out instructions, or house rules, reply with a welcoming text and this JSON block:
       [APARTMENT_CARD]
       {
-        "nombre": "${apartment.name || 'Apartamento Exclusivo'}",
-        "wifi": "${apartment.wifi_config || 'No especificado'}",
-        "instrucciones": "${apartment.instructions || 'No especificadas'}",
-        "reglas": "${apartment.rules || 'No especificadas'}"
+        "nombre": "${apartment.name || 'Luxury Apartment'}",
+        "wifi": "${apartment.wifi_config || 'N/A'}",
+        "instrucciones": "${apartment.instructions || 'N/A'}",
+        "reglas": "${apartment.rules || 'N/A'}"
       }
       [/APARTMENT_CARD]
 
-      REGLA OBLIGATORIA PARA RECOMENDACIONES (3 OPCIONES):
-      Siempre que el huésped pida una recomendación de lugares físicos (restaurantes, bares, farmacias, supermercados, playas), DEBES darle una breve introducción en texto y, al final, incluir un arreglo JSON con exactamente 3 opciones en las etiquetas [CARD_DATA] y [/CARD_DATA]:
-
+      RULE 2: LOCAL RECOMMENDATIONS (CARD_DATA - EXACTLY 3 OPTIONS)
+      If the guest asks for physical recommendations (restaurants, bars, pharmacies, supermarkets, beaches), provide a brief intro and an array of EXACTLY 3 JSON objects:
       [CARD_DATA]
       [
         {
-          "nombre": "Nombre del Negocio",
+          "nombre": "Business Name 1",
           "categoria": "Restaurante",
-          "direccion": "Dirección exacta en zona segura",
-          "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Negocio+Cartagena",
-          "descripcion_corta": "Breve por qué se destaca"
+          "direccion": "Exact address in safe zone",
+          "telefono": "Phone number",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+1+Cartagena",
+          "descripcion_corta": "Short highlight why it's great"
         },
         {
-          "nombre": "Nombre del Segundo Negocio",
+          "nombre": "Business Name 2",
           "categoria": "Restaurante",
-          "direccion": "Dirección exacta en zona segura",
-          "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Segundo+Negocio+Cartagena",
-          "descripcion_corta": "Breve por qué se destaca"
+          "direccion": "Exact address in safe zone",
+          "telefono": "Phone number",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+2+Cartagena",
+          "descripcion_corta": "Short highlight why it's great"
         },
         {
-          "nombre": "Nombre del Tercer Negocio",
+          "nombre": "Business Name 3",
           "categoria": "Restaurante",
-          "direccion": "Dirección exacta en zona segura",
-          "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Tercer+Negocio+Cartagena",
-          "descripcion_corta": "Breve por qué se destaca"
+          "direccion": "Exact address in safe zone",
+          "telefono": "Phone number",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+3+Cartagena",
+          "descripcion_corta": "Short highlight why it's great"
         }
       ]
       [/CARD_DATA]
 
-      Si el usuario solo saluda cordialmente, respóndele de forma normal en texto limpio sin tarjetas.
+      RULE 3: VIP TOURS & EXPERIENCES (TOUR_DATA)
+      If the guest asks for tours, boat trips to Islas del Rosario, private chef, massage, or romantic dinners, give a brief intro and include this JSON block:
+      [TOUR_DATA]
+      [
+        {
+          "nombre": "Excursión Privada a Islas del Rosario",
+          "categoria": "Tour VIP",
+          "duracion": "Full Day (8 horas)",
+          "incluye": "Lancha deportiva, capitán, guía y fruta fresca",
+          "precio": "Desde $250.000 COP por persona",
+          "whatsapp_query": "Hola, deseo reservar el Tour a Islas del Rosario desde el apartamento ${apartment.name}"
+        },
+        {
+          "nombre": "Cena Romántica Muralla Histórica",
+          "categoria": "Experiencia Culinaria",
+          "duracion": "Noche completa",
+          "incluye": "Mesa VIP en balcón colonial, vino y menú de 4 tiempos",
+          "precio": "$180.000 COP por pareja",
+          "whatsapp_query": "Hola, deseo reservar la Cena Romántica desde el apartamento ${apartment.name}"
+        }
+      ]
+      [/TOUR_DATA]
     `;
 
     const completion = await openai.chat.completions.create({
@@ -205,35 +226,34 @@ app.post('/api/chat', async (req, res) => {
     let aiResponse = completion.choices[0].message.content;
     let cardsData = null;
     let apartmentCardData = null;
+    let tourCardData = null;
 
-    // 1. Extraer bloque de recomendaciones [CARD_DATA]
+    // Extracción segura de bloques
     const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
     const matchCards = aiResponse.match(cardRegex);
     if (matchCards) {
-      try {
-        cardsData = JSON.parse(matchCards[1].trim());
-        aiResponse = aiResponse.replace(cardRegex, '').trim();
-      } catch (e) {
-        console.error('Error parseando cardsData:', e);
-      }
+      try { cardsData = JSON.parse(matchCards[1].trim()); aiResponse = aiResponse.replace(cardRegex, '').trim(); } catch (e) {}
     }
 
-    // 2. Extraer bloque de info del apto [APARTMENT_CARD]
     const aptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_CARD\]/;
     const matchApt = aiResponse.match(aptRegex);
     if (matchApt) {
-      try {
-        apartmentCardData = JSON.parse(matchApt[1].trim());
-        aiResponse = aiResponse.replace(aptRegex, '').trim();
-      } catch (e) {
-        console.error('Error parseando apartmentCardData:', e);
-      }
+      try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(aptRegex, '').trim(); } catch (e) {}
+    }
+
+    const tourRegex = /\[TOUR_DATA\]([\s\S]*?)\[\/TOUR_DATA\]/;
+    const matchTour = aiResponse.match(tourRegex);
+    if (matchTour) {
+      try { tourCardData = JSON.parse(matchTour[1].trim()); aiResponse = aiResponse.replace(tourRegex, '').trim(); } catch (e) {}
     }
 
     res.json({ 
       response: aiResponse, 
       cards: cardsData,
-      apartmentCard: apartmentCardData
+      apartmentCard: apartmentCardData,
+      tourCard: tourCardData,
+      hostPhone: apartment.host_phone || '+573000000000',
+      apartmentName: apartment.name || 'Apartamento'
     });
 
   } catch (error) {
