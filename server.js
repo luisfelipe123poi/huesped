@@ -233,18 +233,6 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
 // 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
 // ==========================================
 
-// Servir archivos estáticos desde la raíz del proyecto
-app.use(express.static(path.join(__dirname)));
-
-// Ruta explícita para la vista del huésped
-app.get('/guest.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'guest.html'));
-});
-
-// ==========================================
-// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
-// ==========================================
-
 // Servir archivos estáticos desde la raíz
 app.use(express.static(path.join(__dirname)));
 
@@ -253,11 +241,11 @@ app.get('/guest.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
 
-// Ruta raíz o comodín: Si entran a la raíz principal sin parámetros, decides qué mostrar
+// Ruta raíz: Si entran directamente a la raíz de Render, carga guest.html por defecto
 app.get('/', (req, res) => {
-  // Si quieres que la raíz cargue el huésped por defecto (o puedes cambiarlo si prefieres otra vista)
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
+
 // ==========================================
 // 6. INICIAR SERVIDOR
 // ==========================================
