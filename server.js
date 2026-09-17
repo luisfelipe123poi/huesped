@@ -335,7 +335,7 @@ app.post('/api/chat', async (req, res) => {
       try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(cleanAptRegex, '').trim(); } catch (e) {}
     }
 
-    // Extracción robusta y limpieza total de PLACE_DATA
+    // 1. Intentar capturar con las etiquetas completas [PLACE_DATA] ... [/PLACE_DATA]
     const placeRegex = /\[PLACE_DATA\]([\s\S]*?)\[\/PLACE_DATA\]/i;
     const matchPlace = aiResponse.match(placeRegex);
     if (matchPlace) {
@@ -343,6 +343,17 @@ app.post('/api/chat', async (req, res) => {
         placeCardData = JSON.parse(matchPlace[1].trim()); 
       } catch (e) {}
       aiResponse = aiResponse.replace(placeRegex, '').trim();
+    } 
+    // 2. Fallback por si la IA devuelve el JSON suelto sin las etiquetas de corchetes
+    else {
+      const looseJsonRegex = /\{[\s\S]*?"nombre"[\s\S]*?"direccion"[\s\S]*?\}/i;
+      const matchLoose = aiResponse.match(looseJsonRegex);
+      if (matchLoose) {
+        try {
+          placeCardData = JSON.parse(matchLoose[0].trim());
+          aiResponse = aiResponse.replace(looseJsonRegex, '').trim();
+        } catch (e) {}
+      }
     }
 
     const tourRegex = /\[TOUR_DATA\]([\s\S]*?)\[\/TOUR_DATA\]/;
@@ -351,7 +362,7 @@ app.post('/api/chat', async (req, res) => {
       try { tourCardData = JSON.parse(matchTour[1].trim()); aiResponse = aiResponse.replace(tourRegex, '').trim(); } catch (e) {}
     }
 
-    // Limpieza general extra por si quedan restos de etiquetas sueltas
+    // Limpieza general de cualquier resto de etiqueta que haya quedado volando
     aiResponse = aiResponse.replace(/\[\/?PLACE_DATA\]/gi, '').trim();
 
     res.json({ 
