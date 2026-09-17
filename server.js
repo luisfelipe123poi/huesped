@@ -83,7 +83,7 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Genera el QR apuntando a guest.html con ?id=)
+// [POST] Crear o actualizar un apartamento (Forzando Cloudflare para el guest_url)
 app.post('/api/owner/properties', async (req, res) => {
   try {
     const { ownerId, name, apartment_id, wifi_config, instructions, rules } = req.body;
@@ -92,8 +92,8 @@ app.post('/api/owner/properties', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
     }
 
-    // URL base dinámica del servidor apuntando explícitamente a guest.html
-    const frontendBaseUrl = process.env.FRONTEND_URL || req.protocol + '://' + req.get('host');
+    // URL base fija directo al frontend de Cloudflare (huesped1)
+    const frontendBaseUrl = 'https://huesped1.prestigecloser.com';
     const guest_url = `${frontendBaseUrl}/guest.html?id=${apartment_id}`;
 
     // Generar código QR en formato Data URL (Base64)
@@ -241,7 +241,7 @@ app.get('/guest.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
 
-// Ruta raíz: Si entran directamente a la raíz de Render, carga guest.html por defecto
+// Ruta raíz
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
