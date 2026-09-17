@@ -200,7 +200,12 @@ app.post('/api/chat', async (req, res) => {
 
     const systemPrompt = `
       You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
-      LOCATION CONTEXT: Base all physical recommendations (restaurants, stores, services, etc.) primarily on the specific location and surroundings of this apartment. Prioritize places nearby or easily accessible from this property's sector (${apartment.instructions || 'Cartagena'}). If this apartment is located near or adjacent to high-risk, restricted, or dangerous zones in Cartagena, you must proactively and politely warn the guest about safety precautions for that area.
+      
+      CRITICAL SAFETY & LOCATION POLICY:
+      - Automatically analyze the location and surroundings of this apartment (${apartment.instructions || 'Cartagena'}). 
+      - If this property is located in or near popular, peripheral, or high-risk sectors (such as parts of the southern zones, routes near "Camino del Medio", Olaya, Pozón, etc.), you MUST proactively include a polite, non-alarming safety advisory in your text response whenever you give recommendations. 
+      - NEVER recommend businesses, restaurants, or spots located inside dangerous zones or red areas ("zonas rojas"). Always filter recommendations to safe, established, and tourist-friendly commercial areas or safe commercial strips nearby, even if the apartment itself is in a residential sector.
+      - Protect the guest's safety and the host's liability at all costs by offering smart transit advice (e.g., recommending official apps like Uber/InDrive or radio-taxis for night trips) without scaring them.
 
       OFFICIAL APARTMENT DATA:
       - Property Name: ${apartment.name || 'N/A'}
@@ -212,7 +217,7 @@ app.post('/api/chat', async (req, res) => {
 
       STRICT RULES & STYLE:
       1. Detect the user's language and ALWAYS reply in that exact same language.
-      2. ABSOLUTELY NO asterisks (*), NO markdown bullets (-, *), and NO numbered lists in plain text when giving recommendations. Keep text responses short and conversational.
+      2. ABSOLUTELY NO asterisks (*), NO markdown bullets (-, *), and NO numbered lists in plain text when giving recommendations. Keep text responses short, elegant, and conversational.
       3. If the guest asks about their check-in, check-out dates, or duration of stay, use the CALENDAR STATUS provided above to answer accurately.
 
       RULE 1: APARTMENT INFO (APARTMENT_CARD)
@@ -228,15 +233,15 @@ app.post('/api/chat', async (req, res) => {
 
       RULE 2: LOCAL RECOMMENDATIONS (CARD_DATA - MANDATORY EXACTLY 3 DIFFERENT OPTIONS)
       If the guest asks for physical recommendations (restaurants, bars, pharmacies, supermarkets, beaches):
-      - CRITICAL EXCLUSION RULE: DO NOT recommend any of the following places because they were already shown recently: ${JSON.stringify(avoidedPlaces)}. You MUST choose 3 completely different, fresh, and varied places close or relevant to the apartment's location.
-      - FORMAT REQUIREMENT: You MUST include a short intro text followed STRICTLY by the [CARD_DATA] block containing an array of EXACTLY 3 JSON objects. Do NOT list the recommendations in the plain text response; let the UI cards display them.
+      - CRITICAL EXCLUSION RULE: DO NOT recommend any of the following places because they were already shown recently: ${JSON.stringify(avoidedPlaces)}. You MUST choose 3 completely different, fresh, and varied places located in safe, well-lit, and recommended areas.
+      - FORMAT REQUIREMENT: In your text response, provide a brief intro that *proactively includes any necessary safety/transit tip* for moving around from the apartment's sector. Then include the [CARD_DATA] block with EXACTLY 3 JSON objects. Do NOT list the recommendations in the plain text response; let the UI cards display them.
       
       [CARD_DATA]
       [
         {
           "nombre": "Business Name 1",
           "categoria": "Restaurante",
-          "direccion": "Exact address near apartment location",
+          "direccion": "Exact address in a safe commercial zone",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+1+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
@@ -244,7 +249,7 @@ app.post('/api/chat', async (req, res) => {
         {
           "nombre": "Business Name 2",
           "categoria": "Restaurante",
-          "direccion": "Exact address near apartment location",
+          "direccion": "Exact address in a safe commercial zone",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+2+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
@@ -252,7 +257,7 @@ app.post('/api/chat', async (req, res) => {
         {
           "nombre": "Business Name 3",
           "categoria": "Restaurante",
-          "direccion": "Exact address near apartment location",
+          "direccion": "Exact address in a safe commercial zone",
           "telefono": "Phone number",
           "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+3+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
@@ -282,7 +287,7 @@ app.post('/api/chat', async (req, res) => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.7, // Bajamos un poco a 0.7 para que sea más obediente con la estructura JSON
+      temperature: 0.7,
     });
 
     let aiResponse = completion.choices[0].message.content;
@@ -297,23 +302,23 @@ app.post('/api/chat', async (req, res) => {
         cardsData = JSON.parse(matchCards[1].trim()); 
         aiResponse = aiResponse.replace(cardRegex, '').trim(); 
         
-        // Guardar los nuevos nombres en la lista de evitados para este apartamento
         cardsData.forEach(c => {
           if (c.nombre && !avoidedPlaces.includes(c.nombre)) {
             avoidedPlaces.push(c.nombre);
           }
         });
-        // Mantener solo los últimos 15 lugares en memoria para que no crezca infinito
         if (avoidedPlaces.length > 15) {
           avoidedPlaces.splice(0, avoidedPlaces.length - 15);
         }
       } catch (e) {}
     }
 
-    const aptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_CARD\]/;
-    const matchApt = aiResponse.match(aptRegex);
+    const aptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_Card\]/i;
+    // (Aseguramos limpieza correcta de etiquetas)
+    const cleanAptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_CARD\]/;
+    const matchApt = aiResponse.match(cleanAptRegex);
     if (matchApt) {
-      try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(aptRegex, '').trim(); } catch (e) {}
+      try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(cleanAptRegex, '').trim(); } catch (e) {}
     }
 
     const tourRegex = /\[TOUR_DATA\]([\s\S]*?)\[\/TOUR_DATA\]/;
