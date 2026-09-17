@@ -335,13 +335,14 @@ app.post('/api/chat', async (req, res) => {
       try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(cleanAptRegex, '').trim(); } catch (e) {}
     }
 
-    const placeRegex = /\[PLACE_DATA\]([\s\S]*?)\[\/PLACE_DATA\]/;
+    // Extracción robusta y limpieza total de PLACE_DATA
+    const placeRegex = /\[PLACE_DATA\]([\s\S]*?)\[\/PLACE_DATA\]/i;
     const matchPlace = aiResponse.match(placeRegex);
     if (matchPlace) {
       try { 
         placeCardData = JSON.parse(matchPlace[1].trim()); 
-        aiResponse = aiResponse.replace(placeRegex, '').trim(); 
       } catch (e) {}
+      aiResponse = aiResponse.replace(placeRegex, '').trim();
     }
 
     const tourRegex = /\[TOUR_DATA\]([\s\S]*?)\[\/TOUR_DATA\]/;
@@ -349,6 +350,9 @@ app.post('/api/chat', async (req, res) => {
     if (matchTour) {
       try { tourCardData = JSON.parse(matchTour[1].trim()); aiResponse = aiResponse.replace(tourRegex, '').trim(); } catch (e) {}
     }
+
+    // Limpieza general extra por si quedan restos de etiquetas sueltas
+    aiResponse = aiResponse.replace(/\[\/?PLACE_DATA\]/gi, '').trim();
 
     res.json({ 
       response: aiResponse, 
