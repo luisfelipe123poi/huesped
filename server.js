@@ -120,6 +120,10 @@ app.post('/api/owner/properties', async (req, res) => {
   }
 });
 
+// Memoria temporal simple para almacenar los últimos lugares recomendados por apartamento
+// (En producción puedes guardarlo en la base de datos dentro del modelo de Apartment o Session)
+const recentRecommendations = {};
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { apartment_id, message } = req.body;
@@ -133,23 +137,30 @@ app.post('/api/chat', async (req, res) => {
       return res.status(404).json({ error: 'Apartamento no encontrado' });
     }
 
+    // Inicializar memoria para este apartamento si no existe
+    if (!recentRecommendations[apartment_id]) {
+      recentRecommendations[apartment_id] = [];
+    }
+
+    const avoidedPlaces = recentRecommendations[apartment_id];
+
     const systemPrompt = `
       You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
-      Allowed zones for recommendations: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní, and Manga. Avoid dangerous areas.
+      Allowed zones: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní, and Manga.
 
-      OFFICIAL APARTMENT DATA (REGISTERED BY HOST):
+      OFFICIAL APARTMENT DATA:
       - Property Name: ${apartment.name || 'N/A'}
       - Wi-Fi Config: ${apartment.wifi_config || 'N/A'}
       - Apartment Instructions: ${apartment.instructions || 'N/A'}
       - House Rules: ${apartment.rules || 'N/A'}
-      - Host WhatsApp / Emergency Phone: ${apartment.host_phone || '+573000000000'}
+      - Host WhatsApp: ${apartment.host_phone || '+573000000000'}
 
       STRICT RULES & STYLE:
-      1. Detect the language of the user's message (Spanish, English, French, Portuguese, etc.) and ALWAYS reply in that exact same language.
-      2. No asterisks, markdown bullets, or weird symbols in plain text. Write cleanly and naturally.
+      1. Detect the user's language and ALWAYS reply in that exact same language.
+      2. No asterisks, markdown bullets, or weird symbols in plain text.
 
       RULE 1: APARTMENT INFO (APARTMENT_CARD)
-      If the guest asks about apartment details, Wi-Fi, check-in/out instructions, or house rules, reply with a welcoming text and this JSON block:
+      If the guest asks about apartment details, Wi-Fi, instructions, or rules, reply with text and this JSON block:
       [APARTMENT_CARD]
       {
         "nombre": "${apartment.name || 'Luxury Apartment'}",
@@ -159,39 +170,42 @@ app.post('/api/chat', async (req, res) => {
       }
       [/APARTMENT_CARD]
 
-      RULE 2: LOCAL RECOMMENDATIONS (CARD_DATA - EXACTLY 3 OPTIONS)
-      If the guest asks for physical recommendations (restaurants, bars, pharmacies, supermarkets, beaches), provide a brief intro and an array of EXACTLY 3 JSON objects:
+      RULE 2: LOCAL RECOMMENDATIONS (CARD_DATA - EXACTLY 3 DIFFERENT OPTIONS)
+      If the guest asks for physical recommendations (restaurants, bars, pharmacies, supermarkets, beaches):
+      - CRITICAL EXCLUSION RULE: DO NOT recommend any of the following places because they were already shown recently: ${JSON.stringify(avoidedPlaces)}. You MUST choose 3 completely different, fresh, and varied places in Cartagena.
+      
+      Provide a brief intro and an array of EXACTLY 3 JSON objects:
       [CARD_DATA]
       [
         {
-          "nombre": "Business Name 1",
+          "nombre": "New Business Name 1",
           "categoria": "Restaurante",
           "direccion": "Exact address in safe zone",
           "telefono": "Phone number",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+1+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+1+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
         },
         {
-          "nombre": "Business Name 2",
+          "nombre": "New Business Name 2",
           "categoria": "Restaurante",
           "direccion": "Exact address in safe zone",
           "telefono": "Phone number",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+2+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+2+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
         },
         {
-          "nombre": "Business Name 3",
+          "nombre": "New Business Name 3",
           "categoria": "Restaurante",
           "direccion": "Exact address in safe zone",
           "telefono": "Phone number",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Business+Name+3+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=New+Business+Name+3+Cartagena",
           "descripcion_corta": "Short highlight why it's great"
         }
       ]
       [/CARD_DATA]
 
       RULE 3: VIP TOURS & EXPERIENCES (TOUR_DATA)
-      If the guest asks for tours, boat trips to Islas del Rosario, private chef, massage, or romantic dinners, give a brief intro and include this JSON block:
+      If the guest asks for tours, boat trips, private chef, massage, etc., give a brief intro and include:
       [TOUR_DATA]
       [
         {
@@ -201,14 +215,6 @@ app.post('/api/chat', async (req, res) => {
           "incluye": "Lancha deportiva, capitán, guía y fruta fresca",
           "precio": "Desde $250.000 COP por persona",
           "whatsapp_query": "Hola, deseo reservar el Tour a Islas del Rosario desde el apartamento ${apartment.name}"
-        },
-        {
-          "nombre": "Cena Romántica Muralla Histórica",
-          "categoria": "Experiencia Culinaria",
-          "duracion": "Noche completa",
-          "incluye": "Mesa VIP en balcón colonial, vino y menú de 4 tiempos",
-          "precio": "$180.000 COP por pareja",
-          "whatsapp_query": "Hola, deseo reservar la Cena Romántica desde el apartamento ${apartment.name}"
         }
       ]
       [/TOUR_DATA]
@@ -220,7 +226,7 @@ app.post('/api/chat', async (req, res) => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.3,
+      temperature: 0.8, // Temperatura alta (0.8) para forzar variedad y creatividad en la IA
     });
 
     let aiResponse = completion.choices[0].message.content;
@@ -228,11 +234,24 @@ app.post('/api/chat', async (req, res) => {
     let apartmentCardData = null;
     let tourCardData = null;
 
-    // Extracción segura de bloques
     const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
     const matchCards = aiResponse.match(cardRegex);
     if (matchCards) {
-      try { cardsData = JSON.parse(matchCards[1].trim()); aiResponse = aiResponse.replace(cardRegex, '').trim(); } catch (e) {}
+      try { 
+        cardsData = JSON.parse(matchCards[1].trim()); 
+        aiResponse = aiResponse.replace(cardRegex, '').trim(); 
+        
+        // Guardar los nuevos nombres en la lista de evitados para este apartamento
+        cardsData.forEach(c => {
+          if (c.nombre && !avoidedPlaces.includes(c.nombre)) {
+            avoidedPlaces.push(c.nombre);
+          }
+        });
+        // Mantener solo los últimos 15 lugares en memoria para que no crezca infinito
+        if (avoidedPlaces.length > 15) {
+          avoidedPlaces.splice(0, avoidedPlaces.length - 15);
+        }
+      } catch (e) {}
     }
 
     const aptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_CARD\]/;
