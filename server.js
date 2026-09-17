@@ -190,6 +190,13 @@ app.post('/api/chat', async (req, res) => {
 
     const avoidedPlaces = recentRecommendations[apartment_id];
 
+    // Obtener la información de la reserva en tiempo real desde el iCal de Airbnb
+    const reservation = await getActiveReservationFromIcal(apartment.ical_url);
+
+    let calendarContext = reservation 
+      ? `Información real del calendario de reservas: El huésped actual entra el ${reservation.checkIn} y sale el ${reservation.checkOut}.`
+      : `No se encontró una reserva activa específica en el calendario para este momento exacto.`;
+
     const systemPrompt = `
       You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
       Allowed zones: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní, and Manga.
@@ -200,10 +207,12 @@ app.post('/api/chat', async (req, res) => {
       - Apartment Instructions: ${apartment.instructions || 'N/A'}
       - House Rules: ${apartment.rules || 'N/A'}
       - Host WhatsApp: ${apartment.host_phone || '+573000000000'}
+      - CALENDAR STATUS: ${calendarContext}
 
       STRICT RULES & STYLE:
       1. Detect the user's language and ALWAYS reply in that exact same language.
       2. No asterisks, markdown bullets, or weird symbols in plain text.
+      3. If the guest asks about their check-in, check-out dates, or duration of stay, use the CALENDAR STATUS provided above to answer accurately.
 
       RULE 1: APARTMENT INFO (APARTMENT_CARD)
       If the guest asks about apartment details, Wi-Fi, instructions, or rules, reply with text and this JSON block:
