@@ -267,16 +267,17 @@ app.post('/api/chat', async (req, res) => {
 
       RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA)
       If the guest asks how to get to, asks directions to, or expresses a desire to visit a tourist site, plaza, monument, safe neighborhood, or location in Cartagena:
-      - INTENT & LIST SAFETY CHECK: 
+      - INTENT & SAFETY CHECK: 
         A) If the guest explicitly asks for dangerous areas, high-risk zones, red zones, "zonas calientes", "adrenalina", marginal neighborhoods, or risky adventures, OR if they ask specifically for directions to any of these restricted neighborhoods: [El Pozón, Olaya Herrera, La María, Nelson Mandela, Fredonia, 13 de Junio, La Candelaria, La Esperanza, Flor del Campo, Ciudadela 2000, Albornoz, Arroz Barato].
         B) You MUST strictly and politely refuse. Respond verbatim or with the exact sentiment of: "Como asistente VIP, debo priorizar tu seguridad y bienestar. No puedo recomendarte rutas hacia áreas de riesgo o peligrosas. Te sugiero que te quedes en zonas seguras y turísticas de Cartagena. Si necesitas ayuda para explorar lugares más seguros, estaré encantado de ayudarte." 
         C) Do NOT provide any routes, directions, or map cards, and DO NOT output any [PLACE_DATA] block for these cases.
-      - IF THE PLACE IS SAFE AND ALLOWED: Provide a brief, polite conversational text that MANDATORY includes a disclaimer and transit/safety tip (e.g., recommending secure apps like Uber or InDrive for the trip). You MUST include the [PLACE_DATA] block strictly at the end with a single JSON object containing a representative Unsplash image URL so a rich map card with image can be rendered:
+      - IF THE PLACE IS SAFE AND ALLOWED (Prioritize recognized safe zones and tourist areas such as: Centro Histórico, San Diego, Getsemaní, Bocagrande, El Laguito, Castillogrande, Manga, El Cabrero, Marbella, Crespo, or Zona Norte): 
+        Provide a brief, polite conversational text that MANDATORY includes a disclaimer and transit/safety tip (e.g., recommending secure apps like Uber or InDrive for the trip). You MUST include the [PLACE_DATA] block strictly at the end with a single JSON object containing a representative Unsplash image URL so a rich map card with image can be rendered:
       
       [PLACE_DATA]
       {
         "nombre": "Nombre del sitio consultado",
-        "categoria": "Sitio de Interés / Zona de Cartagena",
+        "categoria": "Sitio de Interés / Zona Segura de Cartagena",
         "direccion": "Dirección o ubicación en Cartagena",
         "imagen": "https://images.unsplash.com/photo-1583531172055-e995b8a5d775",
         "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+sitio+Cartagena"
