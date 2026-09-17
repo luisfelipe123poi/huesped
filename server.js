@@ -241,17 +241,23 @@ app.get('/guest.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
 
-// Ruta comodín opcional si tienes un index.html general para el panel del anfitrión
-app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  // Valida si existe index.html, de lo contrario da un mensaje claro o sirve guest.html
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).send('Archivo no encontrado en el servidor.');
-    }
-  });
+// ==========================================
+// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
+// ==========================================
+
+// Servir archivos estáticos desde la raíz
+app.use(express.static(path.join(__dirname)));
+
+// Ruta explícita para el Huésped
+app.get('/guest.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'guest.html'));
 });
 
+// Ruta raíz o comodín: Si entran a la raíz principal sin parámetros, decides qué mostrar
+app.get('/', (req, res) => {
+  // Si quieres que la raíz cargue el huésped por defecto (o puedes cambiarlo si prefieres otra vista)
+  res.sendFile(path.join(__dirname, 'guest.html'));
+});
 // ==========================================
 // 6. INICIAR SERVIDOR
 // ==========================================
