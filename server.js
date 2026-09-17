@@ -169,10 +169,29 @@ app.post('/api/chat', async (req, res) => {
       temperature: 0.4,
     });
 
-    const aiResponse = completion.choices[0].message.content;
-    
-    // Opcional: Puedes separar el texto del JSON de la card en el backend para enviarlos limpios al frontend
-    res.json({ response: aiResponse });
+    let aiResponse = completion.choices[0].message.content;
+    let cardData = null;
+
+    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA
+    const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
+    const match = aiResponse.match(cardRegex);
+
+    if (match) {
+      try {
+        // Parsear el JSON interno de la card
+        cardData = JSON.parse(match[1].trim());
+        // Remover el bloque de etiquetas [CARD_DATA] del texto para que el mensaje del chat quede completamente limpio
+        aiResponse = aiResponse.replace(cardRegex, '').trim();
+      } catch (parseError) {
+        console.error('Error al parsear el JSON de la card de la IA:', parseError);
+      }
+    }
+
+    // Devolver el texto limpio y el objeto de la tarjeta separado al frontend
+    res.json({ 
+      response: aiResponse, 
+      card: cardData 
+    });
 
   } catch (error) {
     console.error('Error en /api/chat:', error);
