@@ -142,19 +142,44 @@ app.post('/api/chat', async (req, res) => {
       - Instrucciones: ${apartment.instructions || 'N/A'}
       - Reglas: ${apartment.rules || 'N/A'}
 
-      REGLA SUPREMA Y OBLIGATORIA:
-      Siempre que el usuario pida una recomendación de un lugar físico (restaurante, bar, farmacia, supermercado, sitio turístico), DEBES incluir al final de tu respuesta de texto un bloque exactamente con este formato:
+      REGLAS DE FORMATO Y ESTILO (ESTRICTO):
+      1. Prohibido usar asteriscos, guiones de listado o símbolos extraños en tus textos. Redacta de forma limpia y fluida.
+      
+      REGLA OBLIGATORIA PARA RECOMENDACIONES (3 OPCIONES):
+      Siempre que el huésped pida una recomendación de lugares físicos (restaurantes, bares, farmacias, supermercados, playas), DEBES darle una breve introducción en texto y, al final, incluir un arreglo JSON con **exactamente 3 opciones** envuelto en las etiquetas [CARD_DATA] y [/CARD_DATA]. 
+
+      Usa estrictamente este formato JSON (un array con 3 objetos):
 
       [CARD_DATA]
-      {
-        "nombre": "Nombre Real del Negocio",
-        "categoria": "Restaurante",
-        "direccion": "Dirección exacta en Cartagena",
-        "telefono": "Teléfono de contacto",
-        "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Negocio+Cartagena",
-        "descripcion_corta": "Breve descripción atractiva"
-      }
+      [
+        {
+          "nombre": "Nombre del Primer Negocio",
+          "categoria": "Restaurante",
+          "direccion": "Dirección exacta en zona segura",
+          "telefono": "Teléfono de contacto",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Primer+Negocio+Cartagena",
+          "descripcion_corta": "Breve por qué se destaca"
+        },
+        {
+          "nombre": "Nombre del Segundo Negocio",
+          "categoria": "Restaurante",
+          "direccion": "Dirección exacta en zona segura",
+          "telefono": "Teléfono de contacto",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Segundo+Negocio+Cartagena",
+          "descripcion_corta": "Breve por qué se destaca"
+        },
+        {
+          "nombre": "Nombre del Tercer Negocio",
+          "categoria": "Restaurante",
+          "direccion": "Dirección exacta en zona segura",
+          "telefono": "Teléfono de contacto",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Tercer+Negocio+Cartagena",
+          "descripcion_corta": "Breve por qué se destaca"
+        }
+      ]
       [/CARD_DATA]
+
+      Si el usuario solo saluda o pregunta reglas del apartamento, responde únicamente en texto limpio sin el bloque [CARD_DATA].
     `;
 
     const completion = await openai.chat.completions.create({
@@ -163,28 +188,29 @@ app.post('/api/chat', async (req, res) => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.2, // Temperatura baja para que sea más estricto y obedezca el formato
+      temperature: 0.3,
     });
 
     let aiResponse = completion.choices[0].message.content;
-    let cardData = null;
+    let cardsData = null;
 
-    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA de forma infalible
+    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA
     const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
     const match = aiResponse.match(cardRegex);
 
     if (match) {
       try {
-        cardData = JSON.parse(match[1].trim());
+        // Parsear el JSON (ahora es un array de tarjetas)
+        cardsData = JSON.parse(match[1].trim());
         aiResponse = aiResponse.replace(cardRegex, '').trim();
       } catch (parseError) {
-        console.error('Error al parsear el JSON de la card:', parseError);
+        console.error('Error al parsear el JSON de las cards:', parseError);
       }
     }
 
     res.json({ 
       response: aiResponse, 
-      card: cardData 
+      cards: cardsData 
     });
 
   } catch (error) {
