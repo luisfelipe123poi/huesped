@@ -265,17 +265,17 @@ app.post('/api/chat', async (req, res) => {
       ]
       [/CARD_DATA]
 
-      RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA)
-      If the guest asks how to get to a specific tourist site, plaza, monument, or location in Cartagena (e.g., Plaza de la Trinidad, Castillo de San Felipe, Getsemaní, Torre del Reloj):
+      RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA - MANDATORY)
+      If the guest asks how to get to, or asks about any tourist site, plaza, monument, neighborhood, or location in Cartagena (e.g., Manga, Getsemaní, Plaza de la Trinidad, Castillo de San Felipe, Bocagrande, Centro Histórico):
       - Provide a brief, polite conversational text including a transit or safety tip for traveling from the apartment's location. 
-      - CRITICAL: Do NOT print, display, or repeat the JSON structure or raw code inside your text response. Keep your text strictly conversational and natural.
-      - You MUST include a [PLACE_DATA] block strictly at the end with a single JSON object containing the exact details so a map card can be rendered:
+      - CRITICAL MANDATE: You MUST ALWAYS include the [PLACE_DATA] block at the end of your response. Never answer a location or destination query with text alone; a map card with button must always be rendered.
+      - You MUST include the [PLACE_DATA] block strictly with a single JSON object containing the exact details:
       
       [PLACE_DATA]
       {
-        "nombre": "Nombre del sitio (ej. Plaza de la Trinidad)",
-        "categoria": "Plaza Turística / Sitio de Interés",
-        "direccion": "Dirección exacta del lugar en Cartagena",
+        "nombre": "Nombre exacto del sitio o barrio consultado (ej. Barrio Manga)",
+        "categoria": "Sitio de Interés / Zona Residencial Turística",
+        "direccion": "Dirección o ubicación general en Cartagena",
         "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+sitio+Cartagena"
       }
       [/PLACE_DATA]
