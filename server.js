@@ -142,25 +142,19 @@ app.post('/api/chat', async (req, res) => {
       - Instrucciones: ${apartment.instructions || 'N/A'}
       - Reglas: ${apartment.rules || 'N/A'}
 
-      REGLAS DE FORMATO Y ESTILO (ESTRICTO):
-      1. Prohibido usar asteriscos, guiones de listado o cualquier símbolo de formato extraño al escribir tus respuestas. Redacta de forma completamente limpia, fluida y natural, como una conversación humana real y elegante.
-      2. Si el huésped pregunta por la información del apartamento, respóndele de manera redactada en párrafos limpios, sin listas con viñetas ni marcas de texto.
-
-      REGLA OBLIGATORIA PARA RECOMENDACIONES:
-      Cada vez que el huésped pida una recomendación de un restaurante, tienda, farmacia, supermercado, playa o sitio físico, DEBES incluir al final de tu respuesta un bloque JSON estructurado exactamente con este formato, envuelto en etiquetas [CARD_DATA] y [/CARD_DATA]:
+      REGLA SUPREMA Y OBLIGATORIA:
+      Siempre que el usuario pida una recomendación de un lugar físico (restaurante, bar, farmacia, supermercado, sitio turístico), DEBES incluir al final de tu respuesta de texto un bloque exactamente con este formato:
 
       [CARD_DATA]
       {
         "nombre": "Nombre Real del Negocio",
-        "categoria": "Restaurante / Farmacia / Supermercado",
-        "direccion": "Dirección exacta en zona segura",
-        "telefono": "Teléfono de contacto público",
+        "categoria": "Restaurante",
+        "direccion": "Dirección exacta en Cartagena",
+        "telefono": "Teléfono de contacto",
         "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Negocio+Cartagena",
-        "descripcion_corta": "Breve por qué se recomienda en una sola línea atractiva"
+        "descripcion_corta": "Breve descripción atractiva"
       }
       [/CARD_DATA]
-
-      Si el usuario solo saluda o hace una pregunta operativa del apartamento, responde de forma normal en texto limpio sin el bloque de card.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -169,28 +163,25 @@ app.post('/api/chat', async (req, res) => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.4,
+      temperature: 0.2, // Temperatura baja para que sea más estricto y obedezca el formato
     });
 
     let aiResponse = completion.choices[0].message.content;
     let cardData = null;
 
-    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA
+    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA de forma infalible
     const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
     const match = aiResponse.match(cardRegex);
 
     if (match) {
       try {
-        // Parsear el JSON interno de la card
         cardData = JSON.parse(match[1].trim());
-        // Remover el bloque de etiquetas [CARD_DATA] del texto para que el mensaje del chat quede completamente limpio
         aiResponse = aiResponse.replace(cardRegex, '').trim();
       } catch (parseError) {
-        console.error('Error al parsear el JSON de la card de la IA:', parseError);
+        console.error('Error al parsear el JSON de la card:', parseError);
       }
     }
 
-    // Devolver el texto limpio y el objeto de la tarjeta separado al frontend
     res.json({ 
       response: aiResponse, 
       card: cardData 
