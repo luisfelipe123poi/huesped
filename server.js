@@ -267,8 +267,9 @@ app.post('/api/chat', async (req, res) => {
 
       RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA)
       If the guest asks how to get to a specific tourist site, plaza, monument, or location in Cartagena (e.g., Plaza de la Trinidad, Castillo de San Felipe, Getsemaní, Torre del Reloj):
-      - Provide a brief, polite conversational text including a transit or safety tip for traveling from the apartment's location.
-      - You MUST include a [PLACE_DATA] block with a single JSON object containing the exact details so a map card can be rendered:
+      - Provide a brief, polite conversational text including a transit or safety tip for traveling from the apartment's location. 
+      - CRITICAL: Do NOT print, display, or repeat the JSON structure or raw code inside your text response. Keep your text strictly conversational and natural.
+      - You MUST include a [PLACE_DATA] block strictly at the end with a single JSON object containing the exact details so a map card can be rendered:
       
       [PLACE_DATA]
       {
