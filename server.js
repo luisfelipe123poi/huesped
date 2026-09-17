@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const OpenAI = require('openai');
 const QRCode = require('qrcode');
+const path = require('path');
 
 const app = express();
 
@@ -26,7 +27,6 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS (Mongoose)
 // ==========================================
 
-// Esquema del "Digital Twin" del apartamento actualizado
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
@@ -48,17 +48,16 @@ const ApartmentSchema = new mongoose.Schema({
     answer: String
   }],
   guest_url: { type: String },
-  qr_code: { type: String }, // Imagen en Base64 del código QR
+  qr_code: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 
 const Apartment = mongoose.model('Apartment', ApartmentSchema);
 
-// Esquema de Tickets (Solicitudes, Problemas, Preguntas)
 const TicketSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true },
   type: { type: String, enum: ['question', 'request', 'issue'], required: true },
-  category: { type: String }, // Ej: "Aire acondicionado", "Toallas", "Wi-Fi"
+  category: { type: String },
   description: { type: String, required: true },
   status: { type: String, enum: ['pending', 'in_progress', 'resolved'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
@@ -71,12 +70,7 @@ const Ticket = mongoose.model('Ticket', TicketSchema);
 // 4. RUTAS DE LA API (Endpoints)
 // ==========================================
 
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.json({ status: 'API Apartment Experience OS funcionando 🚀' });
-});
-
-// [GET] Obtener el Digital Twin del apartamento (para la vista del huésped por QR)
+// [GET] Obtener el Digital Twin del apartamento
 app.get('/api/apartment/:id', async (req, res) => {
   try {
     const apartment = await Apartment.findOne({ apartment_id: req.params.id });
@@ -89,7 +83,7 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Compatible con el formulario del Anfitrión)
+// [POST] Crear o actualizar un apartamento (Genera el QR apuntando a la raíz con ?id=)
 app.post('/api/owner/properties', async (req, res) => {
   try {
     const { ownerId, name, apartment_id, wifi_config, instructions, rules } = req.body;
@@ -98,9 +92,9 @@ app.post('/api/owner/properties', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
     }
 
-    // Definir la URL del huésped (puedes cambiar el dominio base por el de tu frontend público)
-    const frontendBaseUrl = process.env.FRONTEND_URL || 'https://huesped-frontend.onrender.com';
-    const guest_url = `${frontendBaseUrl}/huesped.html?id=${apartment_id}`;
+    // URL base dinámica del servidor en producción o local usando la raíz ?id=
+    const frontendBaseUrl = process.env.FRONTEND_URL || req.protocol + '://' + req.get('host');
+    const guest_url = `${frontendBaseUrl}/?id=${apartment_id}`;
 
     // Generar código QR en formato Data URL (Base64)
     const qr_code = await QRCode.toDataURL(guest_url);
@@ -126,7 +120,7 @@ app.post('/api/owner/properties', async (req, res) => {
   }
 });
 
-// [POST] Chat con IA contextual (El "Cerebro" del Apartamento)
+// [POST] Chat con IA contextual
 app.post('/api/chat', async (req, res) => {
   try {
     const { apartment_id, message } = req.body;
@@ -135,13 +129,11 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Faltan apartment_id o message' });
     }
 
-    // Buscar el contexto del apartamento
     const apartment = await Apartment.findOne({ apartment_id });
     if (!apartment) {
       return res.status(404).json({ error: 'Apartamento no encontrado' });
     }
 
-    // Construir el prompt del sistema con el Digital Twin actualizado
     const systemPrompt = `
       Eres el asistente virtual operativo de este apartamento turístico llamado "${apartment.name}".
       Tu objetivo es ayudar al huésped con información exacta basada únicamente en los datos del apartamento.
@@ -154,12 +146,12 @@ app.post('/api/chat', async (req, res) => {
       - FAQs: ${JSON.stringify(apartment.faqs || [])}
 
       REGLAS:
-      - Responde de forma amable, corta y directa en el idioma en que te escriba el huésped (principalmente español o inglés).
-      - Si el huésped reporta un daño grave o algo no funciona y no lo puedes resolver con las instrucciones, indícale amablemente que has registrado la incidencia para avisar al anfitrión.
+      - Responde de forma amable, corta y directa en el idioma en que te escriba el huésped.
+      - Si el huésped reporta un daño grave o algo no funciona, indícale amablemente que has registrado la incidencia para avisar al anfitrión.
     `;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Modelo rápido y económico ideal para esto
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
@@ -176,7 +168,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// [POST] Crear un ticket (Solicitud o Problema reportado por el huésped)
+// [POST] Crear un ticket
 app.post('/api/tickets', async (req, res) => {
   try {
     const { apartment_id, type, category, description } = req.body;
@@ -200,20 +192,18 @@ app.post('/api/tickets', async (req, res) => {
   }
 });
 
-// [GET] Dashboard Property Pulse (Ver estado de los apartamentos y sus tickets para el propietario)
+// [GET] Dashboard Property Pulse
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
     const { owner_id } = req.params;
     const apartments = await Apartment.find({ owner_id });
     const aptIds = apartments.map(a => a.apartment_id);
 
-    // Buscar tickets pendientes de estos apartamentos
     const tickets = await Ticket.find({ 
       apartment_id: { $in: aptIds },
       status: 'pending'
     }).sort({ createdAt: -1 });
 
-    // Agrupar estado por apartamento
     const dashboardData = apartments.map(apt => {
       const aptTickets = tickets.filter(t => t.apartment_id === apt.apartment_id);
       const hasIssues = aptTickets.some(t => t.type === 'issue');
@@ -240,7 +230,19 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
 });
 
 // ==========================================
-// 5. INICIAR SERVIDOR
+// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS (Frontend único)
+// ==========================================
+
+// Servir los archivos estáticos desde la raíz del proyecto
+app.use(express.static(path.join(__dirname)));
+
+// Capturar cualquier otra ruta y retornar el index.html principal para evitar 404
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ==========================================
+// 6. INICIAR SERVIDOR
 // ==========================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
