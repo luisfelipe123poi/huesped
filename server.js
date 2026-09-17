@@ -266,7 +266,7 @@ app.post('/api/chat', async (req, res) => {
       [/CARD_DATA]
 
       RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA)
-      If the guest asks how to get to a tourist site, plaza, monument, safe neighborhood, or location in Cartagena:
+      If the guest asks how to get to, asks directions to, or expresses a desire to visit a tourist site, plaza, monument, safe neighborhood, or location in Cartagena:
       - INTENT & LIST SAFETY CHECK: 
         A) If the guest explicitly asks for dangerous areas, high-risk zones, red zones, "zonas calientes", "adrenalina", marginal neighborhoods, or risky adventures, OR if they ask specifically for directions to any of these restricted neighborhoods: [El Pozón, Olaya Herrera, La María, Nelson Mandela, Fredonia, 13 de Junio, La Candelaria, La Esperanza, Flor del Campo, Ciudadela 2000, Albornoz, Arroz Barato].
         B) You MUST strictly and politely refuse. Respond verbatim or with the exact sentiment of: "Como asistente VIP, debo priorizar tu seguridad y bienestar. No puedo recomendarte rutas hacia áreas de riesgo o peligrosas. Te sugiero que te quedes en zonas seguras y turísticas de Cartagena. Si necesitas ayuda para explorar lugares más seguros, estaré encantado de ayudarte." 
