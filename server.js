@@ -152,7 +152,7 @@ app.post('/api/chat', async (req, res) => {
         "categoria": "Restaurante / Farmacia / Supermercado",
         "direccion": "Dirección exacta en la zona segura",
         "telefono": "Teléfono de contacto público",
-        "imagen": "URL de una imagen representativa del lugar (puedes usar una de Unsplash o genérica de referencia)",
+        "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Negocio+Cartagena",
         "descripcion_corta": "Breve por qué se recomienda"
       }
       [/CARD_DATA]
