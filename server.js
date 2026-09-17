@@ -304,6 +304,24 @@ app.post('/api/tickets', async (req, res) => {
   }
 });
 
+// [GET] Listar tickets de un apartamento en tiempo real
+app.get('/api/tickets', async (req, res) => {
+  try {
+    const { apartment_id } = req.query;
+    
+    if (!apartment_id) {
+      return res.status(400).json({ error: 'Falta el parámetro apartment_id' });
+    }
+
+    // Buscamos los tickets ordenados por fecha de creación descendiente (los más recientes primero)
+    const tickets = await Ticket.find({ apartment_id }).sort({ createdAt: -1 });
+    
+    res.status(200).json(tickets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // [GET] Dashboard Property Pulse
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
