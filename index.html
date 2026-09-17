@@ -3,49 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Concierge Pro - Centro de Operaciones y Huésped</title>
+  <title>Concierge Pro - Tu Estancia</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white pb-24">
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white pb-44">
 
-  <!-- VISTA ANFITRIÓN: HEADER NAV -->
-  <header id="host-header" class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
-          <i data-lucide="building-2" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">Concierge Pro</h1>
-          <p class="text-xs text-slate-400">Centro de Operaciones</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-4">
-        <!-- Selector de Vista (Anfitrión <-> Huésped de prueba) -->
-        <button onclick="switchView('guest')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 text-xs font-semibold rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5">
-          <i data-lucide="eye" class="w-3.5 h-3.5"></i> Ver como Huésped
-        </button>
-        <button class="relative p-2 text-slate-400 hover:text-white transition-colors">
-          <i data-lucide="bell" class="w-5 h-5"></i>
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
-        </button>
-        <div class="h-6 w-px bg-slate-800"></div>
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-sm">
-            LC
-          </div>
-          <span class="text-sm font-medium hidden sm:inline">Luis Castellar</span>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- VISTA HUÉSPED: TOP APP BAR (Oculta por defecto si estamos en modo anfitrión) -->
-  <header id="guest-header" class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3 hidden">
+  <!-- TOP APP BAR HUÉSPED -->
+  <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2.5">
         <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
@@ -59,9 +26,6 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="switchView('host')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-300 text-[10px] font-semibold rounded-lg border border-indigo-500/30 hover:bg-indigo-600/30 transition-colors">
-          Volver al Panel
-        </button>
         <button class="p-2 text-slate-400 hover:text-white bg-slate-800/60 rounded-full border border-slate-700/50">
           <i data-lucide="globe" class="w-4 h-4"></i>
         </button>
@@ -69,159 +33,8 @@
     </div>
   </header>
 
-  <!-- CONTENEDOR VISTA ANFITRIÓN -->
-  <main id="host-view" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-    
-    <!-- 1. RESUMEN DE HOY (AI WIDGET) -->
-    <section class="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-      <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        <div class="flex items-center gap-2 text-indigo-400 text-sm font-semibold tracking-wide uppercase">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>Resumen Inteligente del Día</span>
-        </div>
-        <span class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/50 w-fit">
-          Sincronizado en tiempo real
-        </span>
-      </div>
-
-      <p class="text-slate-200 text-lg leading-relaxed mb-6">
-        "Buenos días, Luis. El sistema monitorea activamente tus apartamentos conectados. Revisa abajo los reportes de incidencias y solicitudes en vivo enviadas por tus huéspedes."
-      </p>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="utensils" class="w-4 h-4"></i></div>
-          <div class="text-xs">
-            <p class="text-slate-400">Módulo Activo</p>
-            <p class="font-medium text-slate-200">Digital Twin & IA</p>
-          </div>
-        </div>
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="shirt" class="w-4 h-4"></i></div>
-          <div class="text-xs">
-            <p class="text-slate-400">Automatización</p>
-            <p class="font-medium text-slate-200">Filtro de Tickets</p>
-          </div>
-        </div>
-        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
-          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
-          <div class="text-xs">
-            <p class="text-slate-400">Estado del Sistema</p>
-            <p class="font-medium text-emerald-400">Conectado a Servidor</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. MÉTRICAS CLAVE (KPIs) -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-medium uppercase tracking-wider">Tickets</span>
-          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
-        </div>
-        <div class="flex items-baseline gap-2">
-          <span id="kpi-tickets" class="text-3xl font-bold">0</span>
-          <span class="text-xs text-amber-400 font-medium">Pendientes</span>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">Sincronizado con BD</p>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-medium uppercase tracking-wider">Conversaciones</span>
-          <i data-lucide="message-square" class="w-4 h-4 text-indigo-400"></i>
-        </div>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-bold">IA</span>
-          <span class="text-xs text-slate-400 font-medium">Activa</span>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">Asistente operando</p>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-medium uppercase tracking-wider">Propiedades</span>
-          <i data-lucide="home" class="w-4 h-4 text-emerald-400"></i>
-        </div>
-        <div class="flex items-baseline gap-2">
-          <span id="kpi-properties" class="text-3xl font-bold">0</span>
-          <span class="text-xs text-emerald-400 font-medium">Conectadas</span>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">Monitoreo en vivo</p>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
-        <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span class="text-xs font-medium uppercase tracking-wider">Experiencia</span>
-          <i data-lucide="star" class="w-4 h-4 text-yellow-400"></i>
-        </div>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-bold">4.9</span>
-          <span class="text-xs text-slate-400">/ 5.0</span>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">Satisfacción general</p>
-      </div>
-    </section>
-
-    <!-- 3. SOLICITUDES REQUIEREN ATENCIÓN (ALERTAS CRÍTICAS) -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="relative flex h-3 w-3">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-          </span>
-          <h2 class="font-bold text-lg">Requiere Atención Inmediata</h2>
-        </div>
-        <button onclick="loadDashboardData()" class="text-xs text-indigo-400 hover:underline flex items-center gap-1">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Actualizar
-        </button>
-      </div>
-
-      <div id="tickets-container" class="space-y-3">
-        <p class="text-xs text-slate-500">Cargando solicitudes desde la base de datos...</p>
-      </div>
-    </section>
-
-    <!-- 4. GESTIÓN RÁPIDA DE PROPIEDADES & CÓDIGOS QR -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="font-bold text-lg">Tus Propiedades</h2>
-          <p class="text-xs text-slate-400">Descarga los QR o gestiona las configuraciones de cada espacio</p>
-        </div>
-        <button onclick="toggleModal(true)" class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-indigo-600/20 transition-colors">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          <span>Nueva Propiedad</span>
-        </button>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-400">
-          <thead class="text-xs uppercase bg-slate-950/50 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th scope="col" class="px-4 py-3">Propiedad</th>
-              <th scope="col" class="px-4 py-3">ID Apartamento</th>
-              <th scope="col" class="px-4 py-3">Estado</th>
-              <th scope="col" class="px-4 py-3 text-right">Acciones (QR / URL)</th>
-            </tr>
-          </thead>
-          <tbody id="apartments-table-body" class="divide-y divide-slate-800">
-            <tr>
-              <td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">Cargando propiedades...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- CONTENEDOR VISTA HUÉSPED (MOBILE FIRST INTEGRADO) -->
-  <main id="guest-view" class="max-w-md mx-auto px-4 py-6 space-y-6 hidden">
+  <!-- CONTENEDOR VISTA HUÉSPED -->
+  <main class="max-w-md mx-auto px-4 py-6 space-y-6">
 
     <!-- HERO / BIENVENIDA -->
     <section class="bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
@@ -274,25 +87,30 @@
       </div>
     </section>
 
-    <!-- MOTOR 1: CONCIERGE IA (INTERACCIÓN RÁPIDA) -->
+    <!-- MOTOR 1: CONCIERGE IA (INTERACCIÓN RÁPIDA CON OPENAI) -->
     <section class="space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
           <i data-lucide="bot" class="w-4 h-4 text-indigo-400"></i>
-          Concierge IA
+          Concierge IA (OpenAI)
         </h3>
         <span class="text-[10px] text-slate-400">Responde al instante</span>
       </div>
 
+      <!-- Contenedor de Historial de Chat -->
+      <div id="chat-container" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 max-h-64 overflow-y-auto hidden">
+        <!-- Los mensajes se inyectan dinámicamente aquí -->
+      </div>
+
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-2 shadow-lg">
-        <input type="text" id="ai-chat-input" placeholder="Pregúntame sobre el apartamento..." class="bg-transparent flex-1 text-xs text-white placeholder-slate-500 focus:outline-none px-2">
-        <button onclick="sendAiMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl transition-colors shadow-md shadow-indigo-600/30">
+        <input type="text" id="ai-chat-input" placeholder="Pregúntame sobre el apartamento o servicios..." class="bg-transparent flex-1 text-xs text-white placeholder-slate-500 focus:outline-none px-2" onkeypress="handleChatKeyPress(event)">
+        <button onclick="sendAiMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl transition-colors shadow-md shadow-indigo-600/30 flex items-center justify-center">
           <i data-lucide="send" class="w-4 h-4"></i>
         </button>
       </div>
     </section>
 
-    <!-- MOTOR 2: DISCOVERY / EXPLORAR LA ZONA -->
+    <!-- MOTOR 2: DISCOVERY / EXPLORAR LA ZONA (GOOGLE MAPS) -->
     <section class="space-y-3">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -303,14 +121,14 @@
       </div>
 
       <div class="grid grid-cols-4 gap-2.5">
-        <button onclick="triggerDiscovery('Comer')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+        <button onclick="triggerDiscovery('Restaurantes y comer')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
           <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
             <i data-lucide="utensils" class="w-4 h-4"></i>
           </div>
           <span class="text-[10px] font-medium text-slate-300">Comer</span>
         </button>
 
-        <button onclick="triggerDiscovery('Playas')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+        <button onclick="triggerDiscovery('Playas cercanas')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
           <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl">
             <i data-lucide="waves" class="w-4 h-4"></i>
           </div>
@@ -324,7 +142,7 @@
           <span class="text-[10px] font-medium text-slate-300">Super</span>
         </button>
 
-        <button onclick="triggerDiscovery('Farmacia')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+        <button onclick="triggerDiscovery('Farmacias')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
           <div class="p-2 bg-rose-500/10 text-rose-400 rounded-xl">
             <i data-lucide="pill" class="w-4 h-4"></i>
           </div>
@@ -333,362 +151,176 @@
       </div>
     </section>
 
-    <!-- MOTOR 3: SOLICITAR AYUDA / SERVICIOS DE LA ESTANCIA -->
-    <section class="space-y-3">
-      <h3 class="text-sm font-bold text-white flex items-center gap-2">
-        <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
-        Solicitudes de la Estancia
-      </h3>
+    <!-- MOTOR 3: SOLICITUDES DE LA ESTANCIA (EXPANDIDO CON TODAS LAS NECESIDADES) -->
+    <section class="space-y-3 pb-8">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+          Solicitudes de la Estancia
+        </h3>
+        <span class="text-[10px] text-slate-400">Sincronizado con Anfitrión</span>
+      </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <button onclick="requestService('Toallas adicionales', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
-          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+        <!-- Toallas -->
+        <button onclick="requestService('Solicitud de toallas adicionales', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl shrink-0">
             <i data-lucide="shirt" class="w-4 h-4"></i>
           </div>
-          <div>
-            <p class="text-xs font-bold text-white">Toallas</p>
-            <p class="text-[10px] text-slate-400">Pedir adicionales</p>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Toallas extra</p>
+            <p class="text-[10px] text-slate-400 truncate">Ropa de baño</p>
           </div>
         </button>
 
-        <button onclick="requestService('Reporte de falla técnica', 'issue')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
-          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+        <!-- Ropa de Cama / Sábanas -->
+        <button onclick="requestService('Solicitud de juego de sábanas o almohadas adicionales', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-blue-500/10 text-blue-400 rounded-xl shrink-0">
+            <i data-lucide="bed" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Sábanas y Almohadas</p>
+            <p class="text-[10px] text-slate-400 truncate">Ropa de cama</p>
+          </div>
+        </button>
+
+        <!-- Kit de Aseo / Amenidades -->
+        <button onclick="requestService('Solicitud de kit de aseo (jabón, papel higiénico, champú)', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Kit de Aseo</p>
+            <p class="text-[10px] text-slate-400 truncate">Papel, jabón, etc.</p>
+          </div>
+        </button>
+
+        <!-- Limpieza Extra -->
+        <button onclick="requestService('Solicitud de servicio de limpieza adicional para el apartamento', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-teal-500/10 text-teal-400 rounded-xl shrink-0">
+            <i data-lucide="spray-can" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Limpieza Extra</p>
+            <p class="text-[10px] text-slate-400 truncate">Aseo general</p>
+          </div>
+        </button>
+
+        <!-- Soporte Técnico / Fallas -->
+        <button onclick="requestService('Reporte de falla técnica (Aire acondicionado, electrodomésticos, luces)', 'issue')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
             <i data-lucide="wrench" class="w-4 h-4"></i>
           </div>
-          <div>
-            <p class="text-xs font-bold text-white">Soporte</p>
-            <p class="text-[10px] text-slate-400">Reportar falla</p>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Soporte Técnico</p>
+            <p class="text-[10px] text-slate-400 truncate">Reportar avería</p>
+          </div>
+        </button>
+
+        <!-- Problemas con Wi-Fi o TV -->
+        <button onclick="requestService('Reporte de problema de conexión Wi-Fi o televisión por cable', 'issue')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-xl shrink-0">
+            <i data-lucide="wifi-off" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Falla Wi-Fi / TV</p>
+            <p class="text-[10px] text-slate-400 truncate">Conectividad</p>
+          </div>
+        </button>
+
+        <!-- Early Check-in / Late Check-out -->
+        <button onclick="requestService('Solicitud de extensión de horario (Early Check-in o Late Check-out)', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-rose-500/10 text-rose-400 rounded-xl shrink-0">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Horario Estancia</p>
+            <p class="text-[10px] text-slate-400 truncate">Entrada / Salida</p>
+          </div>
+        </button>
+
+        <!-- Maletero / Guardaequipaje -->
+        <button onclick="requestService('Solicitud de guardaequipaje o servicio de maletero', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-orange-500/10 text-orange-400 rounded-xl shrink-0">
+            <i data-lucide="briefcase" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Guardaequipaje</p>
+            <p class="text-[10px] text-slate-400 truncate">Maletas y bolsos</p>
+          </div>
+        </button>
+
+        <!-- Utensilios de Cocina / Electrodomésticos -->
+        <button onclick="requestService('Solicitud de menaje de cocina adicional (ollas, vajilla, cubiertos)', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-yellow-500/10 text-yellow-400 rounded-xl shrink-0">
+            <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-white truncate">Utensilios de Cocina</p>
+            <p class="text-[10px] text-slate-400 truncate">Menaje extra</p>
+          </div>
+        </button>
+
+        <!-- Asistencia Médica / Emergencia -->
+        <button onclick="requestService('¡EMERGENCIA! Solicitud de asistencia médica o contacto de urgencia', 'issue')" class="bg-rose-950/40 border border-rose-900/60 hover:border-rose-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95 col-span-2">
+          <div class="p-2 bg-rose-500/20 text-rose-400 rounded-xl shrink-0">
+            <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-rose-200">Asistencia Médica / Emergencia</p>
+            <p class="text-[10px] text-rose-400">Atención urgente prioritaria</p>
           </div>
         </button>
       </div>
     </section>
 
+    <!-- Espaciador físico de seguridad para evitar solapamientos con la barra fija -->
+    <div class="h-10"></div>
+
   </main>
 
-  <!-- BARRA NAVEGACIÓN INFERIOR (PWA TAB BAR PARA HUÉSPED) -->
-  <nav id="guest-nav" class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur border-t border-slate-800 py-2 px-6 z-50 hidden">
-    <div class="max-w-md mx-auto flex items-center justify-around">
-      <button class="flex flex-col items-center gap-1 text-indigo-400">
-        <i data-lucide="home" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Inicio</span>
+  <!-- BARRA NAVEGACIÓN INFERIOR (REDESIGNADA, MODERNA Y FLUIDA) -->
+  <nav class="fixed bottom-3 left-4 right-4 bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-2xl py-2 px-4 z-50 shadow-2xl shadow-black/80 max-w-md mx-auto">
+    <div class="flex items-center justify-between">
+      <button class="flex flex-col items-center gap-1 text-indigo-400 px-3 py-1 rounded-xl bg-indigo-500/10 transition-all">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        <span class="text-[9px] font-semibold tracking-tight">Inicio</span>
       </button>
 
-      <button onclick="focusChat()" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
-        <i data-lucide="message-square-text" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Chat IA</span>
+      <button onclick="focusChat()" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 px-3 py-1 rounded-xl transition-all">
+        <i data-lucide="message-square-text" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium tracking-tight">Chat IA</span>
       </button>
 
-      <button onclick="triggerDiscovery('General')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
-        <i data-lucide="map" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Explorar</span>
+      <button onclick="triggerDiscovery('Puntos de interés general')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 px-3 py-1 rounded-xl transition-all">
+        <i data-lucide="map" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium tracking-tight">Explorar</span>
       </button>
 
-      <button onclick="requestService('Ayuda general solicitada', 'request')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
-        <i data-lucide="help-circle" class="w-5 h-5"></i>
-        <span class="text-[10px] font-medium">Ayuda</span>
+      <button onclick="requestService('Ayuda general solicitada por el huésped', 'request')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 px-3 py-1 rounded-xl transition-all">
+        <i data-lucide="help-circle" class="w-4 h-4"></i>
+        <span class="text-[9px] font-medium tracking-tight">Ayuda</span>
       </button>
     </div>
   </nav>
 
-  <!-- MODAL: REGISTRAR NUEVA PROPIEDAD -->
-  <div id="propertyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2">
-          <i data-lucide="home" class="w-5 h-5 text-indigo-400"></i>
-          <h3 class="font-bold text-lg text-white">Registrar Nueva Propiedad (Contexto IA)</h3>
-        </div>
-        <button onclick="toggleModal(false)" class="text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      
-      <form id="propertyForm" onsubmit="createProperty(event)" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Propiedad *</label>
-            <input type="text" id="propName" required placeholder="Ej: Ocean View" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-400 mb-1">ID de Apartamento *</label>
-            <input type="text" id="propId" required placeholder="Ej: 1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Configuración Wi-Fi (Red / Pass)</label>
-          <input type="text" id="propWifiName" placeholder="Ej: Red_1204 / Pass123" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Instrucciones de Llegada y Check-in</label>
-          <textarea id="propInstructions" rows="2" placeholder="Ej: Usar cerradura inteligente código 1234..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Reglas de la Casa</label>
-          <textarea id="propRules" rows="2" placeholder="Ej: No fumar en el balcón..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
-        </div>
-
-        <div class="pt-3 flex justify-end gap-3 border-t border-slate-800">
-          <button type="button" onclick="toggleModal(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl transition-colors">Cancelar</button>
-          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-indigo-600/20">Guardar y Generar QR</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: VISUALIZAR QR Y URL DEL HUÉSPED -->
-  <div id="qrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <h3 id="qrModalTitle" class="font-bold text-base text-white">Acceso del Huésped</h3>
-        <button onclick="toggleQrModal(false)" class="text-slate-400 hover:text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      
-      <div id="qrImageContainer" class="bg-white p-4 rounded-xl flex items-center justify-center min-h-[200px]">
-        <span class="text-slate-900 text-xs">Cargando código QR...</span>
-      </div>
-
-      <div class="space-y-2 text-left">
-        <label class="block text-xs font-medium text-slate-400">Enlace directo:</label>
-        <div class="flex gap-2">
-          <input type="text" id="guestUrlInput" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono focus:outline-none">
-          <button onclick="copyGuestUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition-colors flex items-center justify-center" title="Copiar enlace">
-            <i data-lucide="copy" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-
-      <button onclick="toggleQrModal(false)" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-xl transition-colors">
-        Cerrar
-      </button>
-    </div>
-  </div>
-
-  <!-- SCRIPT DE INTEGRACIÓN TOTAL CON FETCH REAL -->
+  <!-- SCRIPTS HUÉSPED COMPLETOS Y FUNCIONALES -->
   <script>
     lucide.createIcons();
+    let currentApartmentName = "Apartamento";
 
-    const ownerId = 'luis_castellar_admin';
-
-    function switchView(view) {
-      const hostHeader = document.getElementById('host-header');
-      const guestHeader = document.getElementById('guest-header');
-      const hostView = document.getElementById('host-view');
-      const guestView = document.getElementById('guest-view');
-      const guestNav = document.getElementById('guest-nav');
-
-      if (view === 'guest') {
-        hostHeader.classList.add('hidden');
-        hostView.classList.add('hidden');
-        guestHeader.classList.remove('hidden');
-        guestView.classList.remove('hidden');
-        guestNav.classList.remove('hidden');
-      } else {
-        hostHeader.classList.remove('hidden');
-        hostView.classList.remove('hidden');
-        guestHeader.classList.add('hidden');
-        guestView.classList.add('hidden');
-        guestNav.classList.add('hidden');
-      }
-      lucide.createIcons();
-    }
-
-    function toggleModal(show) {
-      const modal = document.getElementById('propertyModal');
-      if (show) {
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-        document.getElementById('propertyForm').reset();
-      }
-      lucide.createIcons();
-    }
-
-    function toggleQrModal(show, name = '', qrUrl = '', guestUrl = '') {
-      const modal = document.getElementById('qrModal');
-      if (show) {
-        document.getElementById('qrModalTitle').innerText = `QR: ${name}`;
-        document.getElementById('guestUrlInput').value = guestUrl;
-        
-        const qrContainer = document.getElementById('qrImageContainer');
-        if (qrUrl.startsWith('data:image')) {
-          qrContainer.innerHTML = `<img src="${qrUrl}" alt="Código QR Huésped" class="w-48 h-48 object-contain mx-auto">`;
-        } else {
-          const encodedUrl = encodeURIComponent(guestUrl);
-          qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodedUrl}" alt="QR Code" class="mx-auto w-40 h-40">`;
-        }
-        modal.classList.remove('hidden');
-      } else {
-        modal.classList.add('hidden');
-      }
-      lucide.createIcons();
-    }
-
-    function copyGuestUrl() {
-      const input = document.getElementById('guestUrlInput');
-      input.select();
-      navigator.clipboard.writeText(input.value);
-      alert('¡Enlace copiado al portapapeles!');
-    }
-
-    async function createProperty(event) {
-      event.preventDefault();
-      
-      const name = document.getElementById('propName').value;
-      const apartment_id = document.getElementById('propId').value;
-      const wifi_config = document.getElementById('propWifiName').value;
-      const instructions = document.getElementById('propInstructions').value;
-      const rules = document.getElementById('propRules').value;
-
-      try {
-        const res = await fetch(`/api/owner/properties`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ownerId, name, apartment_id, wifi_config, instructions, rules })
-        });
-
-        if (res.ok) {
-          alert('¡Propiedad creada con éxito y QR generado!');
-          toggleModal(false);
-          loadDashboardData();
-        } else {
-          alert('Error al crear la propiedad');
-        }
-      } catch (err) {
-        console.error('Error de red:', err);
-        alert('No se pudo conectar con el servidor.');
-      }
-    }
-
-    async function loadDashboardData() {
-      try {
-        const res = await fetch(`/api/owner/dashboard/${ownerId}`);
-        if (!res.ok) throw new Error('Error al conectar con el servidor');
-        const data = await res.json();
-        
-        const ticketsContainer = document.getElementById('tickets-container');
-        const aptTableBody = document.getElementById('apartments-table-body');
-        
-        ticketsContainer.innerHTML = '';
-        aptTableBody.innerHTML = '';
-
-        let allTickets = [];
-        let propertyCount = data.dashboard ? data.dashboard.length : 0;
-        document.getElementById('kpi-properties').innerText = propertyCount;
-
-        if(data.dashboard && data.dashboard.length > 0) {
-          data.dashboard.forEach(apt => {
-            const safeName = apt.name.replace(/'/g, "\\'");
-            const safeQr = apt.qr_code || '';
-            const safeUrl = apt.guest_url || `${window.location.origin}/?id=${apt.apartment_id}`;
-
-            aptTableBody.innerHTML += `
-              <tr class="hover:bg-slate-800/40 transition-colors">
-                <td class="px-4 py-3 font-medium text-white flex items-center gap-3">
-                  <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-                    <i data-lucide="building" class="w-4 h-4"></i>
-                  </div>
-                  ${apt.name}
-                </td>
-                <td class="px-4 py-3 font-mono text-xs text-slate-300">${apt.apartment_id}</td>
-                <td class="px-4 py-3">
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ${apt.status || 'Activo'}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <button onclick="toggleQrModal(true, '${safeName}', '${safeQr}', '${safeUrl}')" class="p-2 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg transition-colors" title="Ver QR y Enlace">
-                    <i data-lucide="qr-code" class="w-4 h-4"></i>
-                  </button>
-                </td>
-              </tr>
-            `;
-
-            if(apt.pending_tickets && apt.pending_tickets.length > 0) {
-              apt.pending_tickets.forEach(ticket => {
-                allTickets.push({ ...ticket, apartmentName: apt.name });
-              });
-            }
-          });
-        } else {
-          aptTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">No hay propiedades registradas.</td></tr>`;
-        }
-
-        document.getElementById('kpi-tickets').innerText = allTickets.length;
-
-        if(allTickets.length === 0) {
-          ticketsContainer.innerHTML = `<div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 text-center text-xs text-slate-400">🎉 ¡Excelente! No hay incidencias pendientes.</div>`;
-        } else {
-          allTickets.forEach(ticket => {
-            ticketsContainer.innerHTML += `
-              <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <p class="font-semibold text-white text-xs">${ticket.apartmentName}</p>
-                  <p class="text-slate-300 text-sm">${ticket.description}</p>
-                </div>
-              </div>
-            `;
-          });
-        }
-        lucide.createIcons();
-      } catch (error) {
-        console.error('Error cargando el dashboard:', error);
-      }
-    }
-
-    // Funciones de IA y Servicios del Huésped
-    async function sendAiMessage() {
-      const input = document.getElementById('ai-chat-input');
-      const message = input.value.trim();
-      const urlParams = new URLSearchParams(window.location.search);
-      const apartment_id = urlParams.get('id');
-
-      if (!message || !apartment_id) return;
-      
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apartment_id, message })
-        });
-        const data = await res.json();
-        alert(`[IA Concierge]: ${data.response || data.error}`);
-        input.value = '';
-      } catch (e) {
-        alert('Error al comunicarse con la IA');
-      }
-    }
-
-    function triggerDiscovery(category) {
-      alert(`[Discovery]: Buscando "${category}" cerca de tu ubicación...`);
-    }
-
-    function requestService(serviceName, type) {
-      alert(`[Servicios]: Solicitud de "${serviceName}" enviada con éxito.`);
-    }
-
-    function focusChat() {
-      const chatInput = document.getElementById('ai-chat-input');
-      if(chatInput) { chatInput.focus(); chatInput.scrollIntoView({ behavior: 'smooth' }); }
-    }
-
-    // CARGA AUTOMÁTICA AL DETECTAR PARÁMETRO ?id=... EN LA URL
     window.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const aptId = urlParams.get('id');
 
       if (aptId) {
-        switchView('guest');
         try {
           const res = await fetch(`/api/apartment/${aptId}`);
           if (res.ok) {
             const apt = await res.json();
-            document.getElementById('guest-app-title').innerText = apt.name;
-            document.getElementById('guest-welcome-title').innerText = `¡Hola en ${apt.name}! 👋`;
+            currentApartmentName = apt.name || "Apartamento";
+            document.getElementById('guest-app-title').innerText = currentApartmentName;
+            document.getElementById('guest-welcome-title').innerText = `¡Hola en ${currentApartmentName}! 👋`;
             document.getElementById('guest-wifi-name').innerText = apt.wifi_config || 'No especificado';
             document.getElementById('guest-instructions').innerText = apt.instructions || 'Sin instrucciones registradas.';
             document.getElementById('guest-rules').innerText = apt.rules || 'Sin reglas registradas.';
@@ -697,11 +329,136 @@
           }
         } catch (err) {
           console.error("Error al cargar datos del apartamento:", err);
+          document.getElementById('guest-app-title').innerText = "Error de conexión";
         }
       } else {
-        loadDashboardData();
+        document.getElementById('guest-app-title').innerText = "ID de apartamento no provisto";
       }
     });
+
+    async function sendAiMessage() {
+      const input = document.getElementById('ai-chat-input');
+      const message = input.value.trim();
+      const urlParams = new URLSearchParams(window.location.search);
+      const apartment_id = urlParams.get('id');
+
+      if (!message || !apartment_id) return;
+      
+      const chatContainer = document.getElementById('chat-container');
+      chatContainer.classList.remove('hidden');
+
+      chatContainer.innerHTML += `
+        <div class="flex justify-end">
+          <div class="bg-indigo-600 text-white text-xs rounded-2xl rounded-tr-none px-3 py-2 max-w-[80%]">
+            ${escapeHtml(message)}
+          </div>
+        </div>
+      `;
+      input.value = '';
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      const loadingId = 'loading-' + Date.now();
+      chatContainer.innerHTML += `
+        <div id="${loadingId}" class="flex justify-start">
+          <div class="bg-slate-800 text-slate-400 text-xs rounded-2xl rounded-tl-none px-3 py-2 animate-pulse">
+            Concierge IA está pensando...
+          </div>
+        </div>
+      `;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apartment_id, message })
+        });
+        const data = await res.json();
+        
+        document.getElementById(loadingId).remove();
+        const aiResponse = data.response || data.error || "Lo siento, no pude procesar tu consulta en este momento.";
+
+        chatContainer.innerHTML += `
+          <div class="flex justify-start">
+            <div class="bg-slate-800 text-slate-200 text-xs rounded-2xl rounded-tl-none px-3 py-2 max-w-[80%] border border-slate-700/50">
+              ${escapeHtml(aiResponse)}
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        document.getElementById(loadingId).remove();
+        chatContainer.innerHTML += `
+          <div class="flex justify-start">
+            <div class="bg-rose-950/80 text-rose-300 text-xs rounded-2xl rounded-tl-none px-3 py-2 max-w-[80%] border border-rose-800">
+              Error de conexión con el servicio de Inteligencia Artificial.
+            </div>
+          </div>
+        `;
+      }
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function handleChatKeyPress(event) {
+      if (event.key === 'Enter') {
+        sendAiMessage();
+      }
+    }
+
+    function focusChat() {
+      const chatInput = document.getElementById('ai-chat-input');
+      if(chatInput) { 
+        chatInput.focus(); 
+        chatInput.scrollIntoView({ behavior: 'smooth' }); 
+      }
+    }
+
+    function triggerDiscovery(category) {
+      const query = encodeURIComponent(`${category} cerca de ${currentApartmentName}`);
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+      window.open(googleMapsUrl, '_blank');
+    }
+
+    async function requestService(serviceName, type) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const apartment_id = urlParams.get('id');
+
+      if (!apartment_id) {
+        alert('Error: No se identifica el apartamento actual.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            apartment_id, 
+            description: serviceName, 
+            type: type 
+          })
+        });
+
+        if (res.ok) {
+          alert(`✅ ¡Solicitud enviada con éxito! El anfitrión ha sido notificado en su panel.`);
+        } else {
+          alert(`⚠️ Tu solicitud fue registrada, pero hubo un detalle al sincronizar con el panel central.`);
+        }
+      } catch (err) {
+        console.error('Error enviando ticket:', err);
+        alert(`❌ No se pudo conectar con el servidor para enviar la solicitud.`);
+      }
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
   </script>
 </body>
 </html>
