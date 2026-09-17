@@ -137,27 +137,38 @@ app.post('/api/chat', async (req, res) => {
       Eres el asistente virtual y guía turístico experto de este apartamento ("${apartment.name}") en Cartagena de Indias.
       Zonas permitidas: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní y Manga. Evita barrios peligrosos.
 
-      DATOS DEL APARTAMENTO (Usa esta información SOLO si el huésped pregunta por el Wi-Fi, instrucciones o reglas del lugar):
-      - Wi-Fi: ${apartment.wifi_config || 'N/A'}
-      - Instrucciones: ${apartment.instructions || 'N/A'}
-      - Reglas: ${apartment.rules || 'N/A'}
+      DATOS OFICIALES DEL APARTAMENTO (REGISTRADOS POR EL ANFITRION):
+      - Nombre de la Propiedad: ${apartment.name || 'N/A'}
+      - Configuración de Wi-Fi: ${apartment.wifi_config || 'N/A'}
+      - Instrucciones del Apto: ${apartment.instructions || 'N/A'}
+      - Reglas de la Casa: ${apartment.rules || 'N/A'}
 
       REGLAS DE FORMATO Y ESTILO (ESTRICTO):
-      1. Prohibido usar asteriscos, guiones de listado o símbolos extraños en tus textos. Redacta de forma limpia y fluida.
-      
-      REGLA OBLIGATORIA PARA RECOMENDACIONES (3 OPCIONES):
-      Siempre que el huésped pida una recomendación de lugares físicos (restaurantes, bares, farmacias, supermercados, playas), DEBES darle una breve introducción en texto y, al final, incluir un arreglo JSON con **exactamente 3 opciones** envuelto en las etiquetas [CARD_DATA] y [/CARD_DATA]. 
+      1. Prohibido usar asteriscos, guiones de listado o símbolos extraños en tus respuestas de texto. Redacta de forma completamente limpia, fluida y natural.
 
-      Usa estrictamente este formato JSON (un array con 3 objetos):
+      REGLA OBLIGATORIA PARA INFORMACIÓN DEL APARTAMENTO:
+      Si el huésped pregunta por la información general del apartamento, detalles del lugar, Wi-Fi, instrucciones de llegada o reglas, DEBES darle una breve bienvenida en texto y, al final, incluir un bloque JSON exacto envuelto en las etiquetas [APARTMENT_CARD] y [/APARTMENT_CARD] con esta estructura:
+
+      [APARTMENT_CARD]
+      {
+        "nombre": "${apartment.name || 'Apartamento Exclusivo'}",
+        "wifi": "${apartment.wifi_config || 'No especificado'}",
+        "instrucciones": "${apartment.instructions || 'No especificadas'}",
+        "reglas": "${apartment.rules || 'No especificadas'}"
+      }
+      [/APARTMENT_CARD]
+
+      REGLA OBLIGATORIA PARA RECOMENDACIONES (3 OPCIONES):
+      Siempre que el huésped pida una recomendación de lugares físicos (restaurantes, bares, farmacias, supermercados, playas), DEBES darle una breve introducción en texto y, al final, incluir un arreglo JSON con exactamente 3 opciones en las etiquetas [CARD_DATA] y [/CARD_DATA]:
 
       [CARD_DATA]
       [
         {
-          "nombre": "Nombre del Primer Negocio",
+          "nombre": "Nombre del Negocio",
           "categoria": "Restaurante",
           "direccion": "Dirección exacta en zona segura",
           "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Primer+Negocio+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Negocio+Cartagena",
           "descripcion_corta": "Breve por qué se destaca"
         },
         {
@@ -165,7 +176,7 @@ app.post('/api/chat', async (req, res) => {
           "categoria": "Restaurante",
           "direccion": "Dirección exacta en zona segura",
           "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Segundo+Negocio+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Segundo+Negocio+Cartagena",
           "descripcion_corta": "Breve por qué se destaca"
         },
         {
@@ -173,13 +184,13 @@ app.post('/api/chat', async (req, res) => {
           "categoria": "Restaurante",
           "direccion": "Dirección exacta en zona segura",
           "telefono": "Teléfono de contacto",
-          "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+Tercer+Negocio+Cartagena",
+          "enlace": "https://www.google.com/maps/search/?api=1&query=Tercer+Negocio+Cartagena",
           "descripcion_corta": "Breve por qué se destaca"
         }
       ]
       [/CARD_DATA]
 
-      Si el usuario solo saluda o pregunta reglas del apartamento, responde únicamente en texto limpio sin el bloque [CARD_DATA].
+      Si el usuario solo saluda cordialmente, respóndele de forma normal en texto limpio sin tarjetas.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -193,24 +204,36 @@ app.post('/api/chat', async (req, res) => {
 
     let aiResponse = completion.choices[0].message.content;
     let cardsData = null;
+    let apartmentCardData = null;
 
-    // Extraer y limpiar el bloque [CARD_DATA] de la respuesta de la IA
+    // 1. Extraer bloque de recomendaciones [CARD_DATA]
     const cardRegex = /\[CARD_DATA\]([\s\S]*?)\[\/CARD_DATA\]/;
-    const match = aiResponse.match(cardRegex);
-
-    if (match) {
+    const matchCards = aiResponse.match(cardRegex);
+    if (matchCards) {
       try {
-        // Parsear el JSON (ahora es un array de tarjetas)
-        cardsData = JSON.parse(match[1].trim());
+        cardsData = JSON.parse(matchCards[1].trim());
         aiResponse = aiResponse.replace(cardRegex, '').trim();
-      } catch (parseError) {
-        console.error('Error al parsear el JSON de las cards:', parseError);
+      } catch (e) {
+        console.error('Error parseando cardsData:', e);
+      }
+    }
+
+    // 2. Extraer bloque de info del apto [APARTMENT_CARD]
+    const aptRegex = /\[APARTMENT_CARD\]([\s\S]*?)\[\/APARTMENT_CARD\]/;
+    const matchApt = aiResponse.match(aptRegex);
+    if (matchApt) {
+      try {
+        apartmentCardData = JSON.parse(matchApt[1].trim());
+        aiResponse = aiResponse.replace(aptRegex, '').trim();
+      } catch (e) {
+        console.error('Error parseando apartmentCardData:', e);
       }
     }
 
     res.json({ 
       response: aiResponse, 
-      cards: cardsData 
+      cards: cardsData,
+      apartmentCard: apartmentCardData
     });
 
   } catch (error) {
@@ -218,7 +241,6 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'Error procesando la solicitud con IA' });
   }
 });
-
 // [POST] Crear un ticket
 app.post('/api/tickets', async (req, res) => {
   try {
