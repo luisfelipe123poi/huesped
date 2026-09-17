@@ -24,16 +24,21 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('🔴 Error conectando a MongoDB:', err));
 
 // ==========================================
-// 3. MODELOS DE DATOS (Mongoose)
+// 3. MODELOS DE DATOS Y RUTAS DE BACKEND (Mongoose & Express)
 // ==========================================
 
+const mongoose = require('mongoose');
+
+// Esquema de Apartamento Actualizado (con iCal, tickets y selecciones embebidas)
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   owner_id: { type: String, required: true },
+  ownerId: { type: String }, // Mantiene compatibilidad con el dashboard del anfitrión
   wifi_config: { type: String, default: 'No configurado' },
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
+  ical_url: { type: String, default: '' }, // <-- Nuevo campo para sincronización iCal de Airbnb
   wifi: {
     ssid: String,
     pass: String
@@ -47,6 +52,8 @@ const ApartmentSchema = new mongoose.Schema({
     question: String,
     answer: String
   }],
+  pending_tickets: { type: Array, default: [] }, // <-- Almacena las consultas/quejas del huésped
+  guest_selections: { type: Array, default: [] }, // <-- Almacena consumos o compras de minibar/tours
   guest_url: { type: String },
   qr_code: { type: String },
   createdAt: { type: Date, default: Date.now }
@@ -54,12 +61,14 @@ const ApartmentSchema = new mongoose.Schema({
 
 const Apartment = mongoose.model('Apartment', ApartmentSchema);
 
+// Esquema de Ticket independiente (por si se usa de forma externa)
 const TicketSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true },
   type: { type: String, enum: ['question', 'request', 'issue'], required: true },
   category: { type: String },
   description: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'in_progress', 'resolved'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'in_progress', 'resolved', 'Pendiente', 'En Proceso', 'Resuelto'], default: 'pending' },
+  host_response: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -83,10 +92,10 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Forzando Cloudflare para el guest_url)
+// [POST] Crear o actualizar un apartamento (Forzando Cloudflare para el guest_url e incluyendo iCal)
 app.post('/api/owner/properties', async (req, res) => {
   try {
-    const { ownerId, name, apartment_id, wifi_config, instructions, rules } = req.body;
+    const { ownerId, name, apartment_id, wifi_config, instructions, rules, ical_url } = req.body;
 
     if (!apartment_id || !name || !ownerId) {
       return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
@@ -103,17 +112,19 @@ app.post('/api/owner/properties', async (req, res) => {
       { apartment_id },
       { 
         name, 
-        owner_id: ownerId, 
+        owner_id: ownerId,
+        ownerId: ownerId,
         wifi_config, 
         instructions, 
         rules, 
+        ical_url: ical_url || '',
         guest_url, 
         qr_code 
       },
       { new: true, upsert: true }
     );
 
-    res.json({ message: 'Propiedad guardada y QR generado exitosamente', apartment });
+    res.json({ message: 'Propiedad guardada, iCal conectado y QR generado exitosamente', apartment });
   } catch (error) {
     console.error('Error al registrar propiedad:', error);
     res.status(500).json({ error: error.message });
