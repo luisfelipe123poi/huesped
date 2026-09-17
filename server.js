@@ -322,6 +322,36 @@ app.get('/api/tickets', async (req, res) => {
   }
 });
 
+// [POST] Actualizar el estado y respuesta de una solicitud/ticket del huésped
+app.post('/api/owner/tickets/update', async (req, res) => {
+  try {
+    const { ownerId, apartment_id, ticket_index, status, host_response } = req.body;
+
+    // 1. Buscar la propiedad del anfitrión
+    const property = await Property.findOne({ ownerId, apartment_id });
+    if (!property) {
+      return res.status(404).json({ error: 'Propiedad no encontrada' });
+    }
+
+    // 2. Validar que el array de tickets exista y el índice sea válido
+    if (!property.pending_tickets || !property.pending_tickets[ticket_index]) {
+      return res.status(404).json({ error: 'Ticket no encontrado en la posición indicada' });
+    }
+
+    // 3. Actualizar el estado y la respuesta del anfitrión en ese ticket específico
+    property.pending_tickets[ticket_index].status = status;
+    property.pending_tickets[ticket_index].host_response = host_response;
+
+    // 4. Guardar los cambios en la base de datos
+    await property.save();
+
+    res.status(200).json({ success: true, message: '¡Ticket actualizado correctamente!' });
+  } catch (error) {
+    console.error('Error al actualizar ticket:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // [GET] Dashboard Property Pulse
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
