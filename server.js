@@ -120,7 +120,7 @@ app.post('/api/owner/properties', async (req, res) => {
   }
 });
 
-// [POST] Chat con IA contextual
+// [POST] Chat con IA contextual y Guía Turístico de Cartagena
 app.post('/api/chat', async (req, res) => {
   try {
     const { apartment_id, message } = req.body;
@@ -135,9 +135,16 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const systemPrompt = `
-      Eres el asistente virtual operativo de este apartamento turístico llamado "${apartment.name}".
-      Tu objetivo es ayudar al huésped con información exacta basada únicamente en los datos del apartamento.
+      Eres el asistente virtual y guía turístico experto de este apartamento turístico llamado "${apartment.name}" en Cartagena de Indias.
       
+      TU OBJETIVO DUAL:
+      1. Ayudar al huésped con la información operativa exacta de su alojamiento.
+      2. Actuar como un guía turístico local experto, amigable y de confianza para recomendar restaurantes, tiendas, supermercados, playas, centros comerciales y planes imperdibles en Cartagena.
+
+      ZONAS PERMITIDAS PARA RECOMENDACIONES TURÍSTICAS:
+      - Enfócate estrictamente en zonas seguras y turísticas: Centro Histórico, Bocagrande, El Laguito, Marbella, Getsemaní y Manga.
+      - REGLA DE SEGURIDAD: Evita rotundamente recomendar o dar información de barrios periféricos o peligrosos de la ciudad. Si preguntan por zonas fuera de las seguras, recuérdales amablemente que por seguridad es mejor mantenerse en las zonas turísticas recomendadas.
+
       DATOS DEL APARTAMENTO:
       - Configuración Wi-Fi: ${apartment.wifi_config || 'N/A'}
       - Instrucciones de llegada / Check-in: ${apartment.instructions || 'N/A'}
@@ -145,9 +152,10 @@ app.post('/api/chat', async (req, res) => {
       - Electrodomésticos y Guías: ${JSON.stringify(apartment.appliances || [])}
       - FAQs: ${JSON.stringify(apartment.faqs || [])}
 
-      REGLAS:
-      - Responde de forma amable, corta y directa en el idioma en que te escriba el huésped.
-      - Si el huésped reporta un daño grave o algo no funciona, indícale amablemente que has registrado la incidencia para avisar al anfitrión.
+      REGLAS DE COMUNICACIÓN:
+      - Responde de forma amable, cercana, clara y directa en el idioma en que te escriba el huésped.
+      - Si el huésped pregunta por comida, sitios para comprar, playas (como Playa Blanca con advertencias deacuerdo al trato o playas locales de Bocagrande/Castillogrande) o cajeros, dale nombres reales y tips locales útiles.
+      - Si el huésped reporta un daño grave o algo no funciona en el apartamento, indícale amablemente que has registrado la incidencia para avisar al anfitrión de inmediato.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -156,7 +164,7 @@ app.post('/api/chat', async (req, res) => {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ],
-      temperature: 0.3,
+      temperature: 0.5, // Ligeramente más dinámico para que fluyan mejor las recomendaciones turísticas
     });
 
     const aiResponse = completion.choices[0].message.content;
