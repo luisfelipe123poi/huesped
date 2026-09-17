@@ -74,6 +74,41 @@ const TicketSchema = new mongoose.Schema({
 
 const Ticket = mongoose.model('Ticket', TicketSchema);
 
+const ical = require('node-ical');
+
+// ==========================================
+// FUNCIÓN PARA LEER EL iCAL DE AIRBNB
+// ==========================================
+async function getActiveReservationFromIcal(icalUrl) {
+  if (!icalUrl) return null;
+
+  try {
+    // Descarga los eventos del enlace iCal de Airbnb en tiempo real
+    const events = await ical.async.fromURL(icalUrl);
+    const now = new Date();
+
+    for (let k in events) {
+      if (events[k].type === 'VEVENT') {
+        const event = events[k];
+        const startDate = new Date(event.start);
+        const endDate = new Date(event.end);
+
+        // Validamos si la fecha actual está dentro del rango de la reserva
+        if (now >= startDate && now <= endDate) {
+          return {
+            checkIn: startDate.toISOString().split('T')[0],
+            checkOut: endDate.toISOString().split('T')[0],
+            summary: event.summary // Suele decir "Reservado" o el nombre del huésped
+          };
+        }
+      }
+    }
+    return null; // No hay reservas activas en este preciso momento
+  } catch (error) {
+    console.error("Error al procesar el iCal:", error);
+    return null;
+  }
+}
 
 // ==========================================
 // 4. RUTAS DE LA API (Endpoints)
