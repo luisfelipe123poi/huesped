@@ -5,6 +5,7 @@ const cors = require('cors');
 const OpenAI = require('openai');
 const QRCode = require('qrcode');
 const path = require('path');
+const ical = require('node-ical');
 
 const app = express();
 
@@ -17,17 +18,17 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 2. Conexión a MongoDB
+// ==========================================
+// 2. CONEXIÓN A MONGODB
+// ==========================================
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/apartment-os';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('🟢 Conectado a MongoDB'))
   .catch(err => console.error('🔴 Error conectando a MongoDB:', err));
 
 // ==========================================
-// 3. MODELOS DE DATOS Y RUTAS DE BACKEND (Mongoose & Express)
+// 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
-
-const mongoose = require('mongoose');
 
 // Esquema de Apartamento Actualizado (con iCal, tickets y selecciones embebidas)
 const ApartmentSchema = new mongoose.Schema({
@@ -38,7 +39,7 @@ const ApartmentSchema = new mongoose.Schema({
   wifi_config: { type: String, default: 'No configurado' },
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
-  ical_url: { type: String, default: '' }, // <-- Nuevo campo para sincronización iCal de Airbnb
+  ical_url: { type: String, default: '' }, // <-- Campo para sincronización iCal de Airbnb
   wifi: {
     ssid: String,
     pass: String
@@ -74,7 +75,7 @@ const TicketSchema = new mongoose.Schema({
 
 const Ticket = mongoose.model('Ticket', TicketSchema);
 
-const ical = require('node-ical');
+
 
 // ==========================================
 // FUNCIÓN PARA LEER EL iCAL DE AIRBNB
