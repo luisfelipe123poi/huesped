@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const OpenAI = require('openai');
+const QRCode = require('qrcode');
 
 const app = express();
 
@@ -25,11 +26,14 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS (Mongoose)
 // ==========================================
 
-// Esquema del "Digital Twin" del apartamento
+// Esquema del "Digital Twin" del apartamento actualizado
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   owner_id: { type: String, required: true },
+  wifi_config: { type: String, default: 'No configurado' },
+  instructions: { type: String, default: '' },
+  rules: { type: String, default: '' },
   wifi: {
     ssid: String,
     pass: String
@@ -39,11 +43,12 @@ const ApartmentSchema = new mongoose.Schema({
     location: String,
     instructions: String
   }],
-  rules: [String],
   faqs: [{
     question: String,
     answer: String
   }],
+  guest_url: { type: String },
+  qr_code: { type: String }, // Imagen en Base64 del código QR
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -84,17 +89,39 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Para administración/seed inicial)
-app.post('/api/apartment', async (req, res) => {
+// [POST] Crear o actualizar un apartamento (Compatible con el formulario del Anfitrión)
+app.post('/api/owner/properties', async (req, res) => {
   try {
-    const { apartment_id, name, owner_id, wifi, appliances, rules, faqs } = req.body;
+    const { ownerId, name, apartment_id, wifi_config, instructions, rules } = req.body;
+
+    if (!apartment_id || !name || !ownerId) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
+    }
+
+    // Definir la URL del huésped (puedes cambiar el dominio base por el de tu frontend público)
+    const frontendBaseUrl = process.env.FRONTEND_URL || 'https://huesped-frontend.onrender.com';
+    const guest_url = `${frontendBaseUrl}/huesped.html?id=${apartment_id}`;
+
+    // Generar código QR en formato Data URL (Base64)
+    const qr_code = await QRCode.toDataURL(guest_url);
+
     const apartment = await Apartment.findOneAndUpdate(
       { apartment_id },
-      { name, owner_id, wifi, appliances, rules, faqs },
+      { 
+        name, 
+        owner_id: ownerId, 
+        wifi_config, 
+        instructions, 
+        rules, 
+        guest_url, 
+        qr_code 
+      },
       { new: true, upsert: true }
     );
-    res.json({ message: 'Apartamento guardado exitosamente', apartment });
+
+    res.json({ message: 'Propiedad guardada y QR generado exitosamente', apartment });
   } catch (error) {
+    console.error('Error al registrar propiedad:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -114,16 +141,17 @@ app.post('/api/chat', async (req, res) => {
       return res.status(404).json({ error: 'Apartamento no encontrado' });
     }
 
-    // Construir el prompt del sistema con el Digital Twin
+    // Construir el prompt del sistema con el Digital Twin actualizado
     const systemPrompt = `
       Eres el asistente virtual operativo de este apartamento turístico llamado "${apartment.name}".
       Tu objetivo es ayudar al huésped con información exacta basada únicamente en los datos del apartamento.
       
       DATOS DEL APARTAMENTO:
-      - Wi-Fi: SSID: ${apartment.wifi?.ssid || 'N/A'}, Password: ${apartment.wifi?.pass || 'N/A'}
-      - Electrodomésticos y Guías: ${JSON.stringify(apartment.appliances)}
-      - Reglas de la casa: ${JSON.stringify(apartment.rules)}
-      - FAQs: ${JSON.stringify(apartment.faqs)}
+      - Configuración Wi-Fi: ${apartment.wifi_config || 'N/A'}
+      - Instrucciones de llegada / Check-in: ${apartment.instructions || 'N/A'}
+      - Reglas de la casa y recomendaciones: ${apartment.rules || 'N/A'}
+      - Electrodomésticos y Guías: ${JSON.stringify(apartment.appliances || [])}
+      - FAQs: ${JSON.stringify(apartment.faqs || [])}
 
       REGLAS:
       - Responde de forma amable, corta y directa en el idioma en que te escriba el huésped (principalmente español o inglés).
@@ -191,14 +219,16 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
       const hasIssues = aptTickets.some(t => t.type === 'issue');
       const hasRequests = aptTickets.some(t => t.type === 'request');
 
-      let statusColor = '🟢';
-      if (hasIssues) statusColor = '🔴';
-      else if (hasRequests) statusColor = '🟡';
+      let statusColor = 'Activo';
+      if (hasIssues) statusColor = 'Urgente';
+      else if (hasRequests) statusColor = 'Pendiente';
 
       return {
         apartment_id: apt.apartment_id,
         name: apt.name,
         status: statusColor,
+        guest_url: apt.guest_url,
+        qr_code: apt.qr_code,
         pending_tickets: aptTickets
       };
     });
@@ -214,5 +244,5 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
 // ==========================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corroyendo en puerto ${PORT}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
