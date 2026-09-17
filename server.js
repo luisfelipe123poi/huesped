@@ -83,7 +83,7 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Genera el QR apuntando a la raíz con ?id=)
+// [POST] Crear o actualizar un apartamento (Genera el QR apuntando a guest.html con ?id=)
 app.post('/api/owner/properties', async (req, res) => {
   try {
     const { ownerId, name, apartment_id, wifi_config, instructions, rules } = req.body;
@@ -92,9 +92,9 @@ app.post('/api/owner/properties', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
     }
 
-    // URL base dinámica del servidor en producción o local usando la raíz ?id=
+    // URL base dinámica del servidor apuntando explícitamente a guest.html
     const frontendBaseUrl = process.env.FRONTEND_URL || req.protocol + '://' + req.get('host');
-    const guest_url = `${frontendBaseUrl}/?id=${apartment_id}`;
+    const guest_url = `${frontendBaseUrl}/guest.html?id=${apartment_id}`;
 
     // Generar código QR en formato Data URL (Base64)
     const qr_code = await QRCode.toDataURL(guest_url);
@@ -230,15 +230,26 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
 });
 
 // ==========================================
-// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS (Frontend único)
+// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
 // ==========================================
 
-// Servir los archivos estáticos desde la raíz del proyecto
+// Servir archivos estáticos desde la raíz del proyecto
 app.use(express.static(path.join(__dirname)));
 
-// Capturar cualquier otra ruta y retornar el index.html principal para evitar 404
+// Ruta explícita para la vista del huésped
+app.get('/guest.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'guest.html'));
+});
+
+// Ruta comodín opcional si tienes un index.html general para el panel del anfitrión
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(__dirname, 'index.html');
+  // Valida si existe index.html, de lo contrario da un mensaje claro o sirve guest.html
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send('Archivo no encontrado en el servidor.');
+    }
+  });
 });
 
 // ==========================================
