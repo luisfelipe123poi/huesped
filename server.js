@@ -266,14 +266,17 @@ app.post('/api/chat', async (req, res) => {
       [/CARD_DATA]
 
       RULE 3: SPECIFIC PLACE / ATTRACTION INFO (PLACE_DATA)
-      If the guest asks how to get to a tourist site, plaza, monument, safe neighborhood, or location in Cartagena (e.g., Manga, Getsemaní, Plaza de la Trinidad, Castillo de San Felipe, Bocagrande, Centro Histórico):
-      - FIRST CHECK SAFETY: If the place requested is a dangerous area, high-risk zone, or marginal neighborhood (such as El Pozón, Olaya Herrera, La María, Nelson Mandela, Fredonia, 13 de Junio, La Candelaria, La Esperanza, Nariño, San Francisco, 7 de Agosto, Flor del Campo, Ciudadela 2000, Albornoz, Arroz Barato, Kenedy, etc.), you MUST strictly and politely refuse. You must respond verbatim or with the exact sentiment of: "Como asistente VIP, debo priorizar tu seguridad y bienestar. No puedo recomendarte rutas hacia áreas de riesgo o peligrosas. Te sugiero que te quedes en zonas seguras y turísticas de Cartagena. Si necesitas ayuda para explorar lugares más seguros, estaré encantado de ayudarte." Do NOT provide any routes, directions, or map cards, and DO NOT output any [PLACE_DATA] block for dangerous areas.
-      - IF THE PLACE IS SAFE AND TOURIST-FRIENDLY: Provide a brief, polite conversational text including a transit or safety tip (like using Uber/InDrive). You MUST include the [PLACE_DATA] block strictly at the end with a single JSON object containing a representative Unsplash image URL so a rich map card with image can be rendered:
+      If the guest asks how to get to a tourist site, plaza, monument, safe neighborhood, or location in Cartagena:
+      - INTENT & LIST SAFETY CHECK: 
+        A) If the guest explicitly asks for dangerous areas, high-risk zones, red zones, "zonas calientes", "adrenalina", marginal neighborhoods, or risky adventures, OR if they ask specifically for directions to any of these restricted neighborhoods: [El Pozón, Olaya Herrera, La María, Nelson Mandela, Fredonia, 13 de Junio, La Candelaria, La Esperanza, Flor del Campo, Ciudadela 2000, Albornoz, Arroz Barato].
+        B) You MUST strictly and politely refuse. Respond verbatim or with the exact sentiment of: "Como asistente VIP, debo priorizar tu seguridad y bienestar. No puedo recomendarte rutas hacia áreas de riesgo o peligrosas. Te sugiero que te quedes en zonas seguras y turísticas de Cartagena. Si necesitas ayuda para explorar lugares más seguros, estaré encantado de ayudarte." 
+        C) Do NOT provide any routes, directions, or map cards, and DO NOT output any [PLACE_DATA] block for these cases.
+      - IF THE PLACE IS SAFE AND ALLOWED: Provide a brief, polite conversational text that MANDATORY includes a disclaimer and transit/safety tip (e.g., recommending secure apps like Uber or InDrive for the trip). You MUST include the [PLACE_DATA] block strictly at the end with a single JSON object containing a representative Unsplash image URL so a rich map card with image can be rendered:
       
       [PLACE_DATA]
       {
-        "nombre": "Nombre del sitio (ej. Barrio Manga)",
-        "categoria": "Sitio de Interés / Zona Residencial",
+        "nombre": "Nombre del sitio consultado",
+        "categoria": "Sitio de Interés / Zona de Cartagena",
         "direccion": "Dirección o ubicación en Cartagena",
         "imagen": "https://images.unsplash.com/photo-1583531172055-e995b8a5d775",
         "enlace": "https://www.google.com/maps/search/?api=1&query=Nombre+del+sitio+Cartagena"
