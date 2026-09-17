@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Concierge Pro - Centro de Operaciones y Huésped</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white pb-24">
+
+  <!-- VISTA ANFITRIÓN: HEADER NAV -->
+  <header id="host-header" class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+          <i data-lucide="building-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">Concierge Pro</h1>
+          <p class="text-xs text-slate-400">Centro de Operaciones</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Selector de Vista (Anfitrión <-> Huésped de prueba) -->
+        <button onclick="switchView('guest')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-400 text-xs font-semibold rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i> Ver como Huésped
+        </button>
+        <button class="relative p-2 text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+        </button>
+        <div class="h-6 w-px bg-slate-800"></div>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-sm">
+            LC
+          </div>
+          <span class="text-sm font-medium hidden sm:inline">Luis Castellar</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- VISTA HUÉSPED: TOP APP BAR (Oculta por defecto si estamos en modo anfitrión) -->
+  <header id="guest-header" class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3 hidden">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold">
+          <i data-lucide="building-2" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h1 id="guest-app-title" class="text-sm font-bold text-white leading-tight">Ocean View 1204</h1>
+          <p class="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Concierge Activo
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="switchView('host')" class="px-2.5 py-1 bg-indigo-600/20 text-indigo-300 text-[10px] font-semibold rounded-lg border border-indigo-500/30 hover:bg-indigo-600/30 transition-colors">
+          Volver al Panel
+        </button>
+        <button class="p-2 text-slate-400 hover:text-white bg-slate-800/60 rounded-full border border-slate-700/50">
+          <i data-lucide="globe" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR VISTA ANFITRIÓN -->
+  <main id="host-view" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- 1. RESUMEN DE HOY (AI WIDGET) -->
+    <section class="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div class="flex items-center gap-2 text-indigo-400 text-sm font-semibold tracking-wide uppercase">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Resumen Inteligente del Día</span>
+        </div>
+        <span class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/50 w-fit">
+          Sincronizado en tiempo real
+        </span>
+      </div>
+
+      <p class="text-slate-200 text-lg leading-relaxed mb-6">
+        "Buenos días, Luis. El sistema monitorea activamente tus apartamentos conectados. Revisa abajo los reportes de incidencias y solicitudes en vivo enviadas por tus huéspedes."
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg"><i data-lucide="utensils" class="w-4 h-4"></i></div>
+          <div class="text-xs">
+            <p class="text-slate-400">Módulo Activo</p>
+            <p class="font-medium text-slate-200">Digital Twin & IA</p>
+          </div>
+        </div>
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i data-lucide="shirt" class="w-4 h-4"></i></div>
+          <div class="text-xs">
+            <p class="text-slate-400">Automatización</p>
+            <p class="font-medium text-slate-200">Filtro de Tickets</p>
+          </div>
+        </div>
+        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
+          <div class="text-xs">
+            <p class="text-slate-400">Estado del Sistema</p>
+            <p class="font-medium text-emerald-400">Conectado a Servidor</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MÉTRICAS CLAVE (KPIs) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Tickets</span>
+          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-tickets" class="text-3xl font-bold">0</span>
+          <span class="text-xs text-amber-400 font-medium">Pendientes</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Sincronizado con BD</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Conversaciones</span>
+          <i data-lucide="message-square" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold">IA</span>
+          <span class="text-xs text-slate-400 font-medium">Activa</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Asistente operando</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Propiedades</span>
+          <i data-lucide="home" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="kpi-properties" class="text-3xl font-bold">0</span>
+          <span class="text-xs text-emerald-400 font-medium">Conectadas</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Monitoreo en vivo</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Experiencia</span>
+          <i data-lucide="star" class="w-4 h-4 text-yellow-400"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-bold">4.9</span>
+          <span class="text-xs text-slate-400">/ 5.0</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Satisfacción general</p>
+      </div>
+    </section>
+
+    <!-- 3. SOLICITUDES REQUIEREN ATENCIÓN (ALERTAS CRÍTICAS) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+          </span>
+          <h2 class="font-bold text-lg">Requiere Atención Inmediata</h2>
+        </div>
+        <button onclick="loadDashboardData()" class="text-xs text-indigo-400 hover:underline flex items-center gap-1">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Actualizar
+        </button>
+      </div>
+
+      <div id="tickets-container" class="space-y-3">
+        <p class="text-xs text-slate-500">Cargando solicitudes desde la base de datos...</p>
+      </div>
+    </section>
+
+    <!-- 4. GESTIÓN RÁPIDA DE PROPIEDADES & CÓDIGOS QR -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="font-bold text-lg">Tus Propiedades</h2>
+          <p class="text-xs text-slate-400">Descarga los QR o gestiona las configuraciones de cada espacio</p>
+        </div>
+        <button onclick="toggleModal(true)" class="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-indigo-600/20 transition-colors">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Nueva Propiedad</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-400">
+          <thead class="text-xs uppercase bg-slate-950/50 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th scope="col" class="px-4 py-3">Propiedad</th>
+              <th scope="col" class="px-4 py-3">ID Apartamento</th>
+              <th scope="col" class="px-4 py-3">Estado</th>
+              <th scope="col" class="px-4 py-3 text-right">Acciones (QR / URL)</th>
+            </tr>
+          </thead>
+          <tbody id="apartments-table-body" class="divide-y divide-slate-800">
+            <tr>
+              <td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">Cargando propiedades...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CONTENEDOR VISTA HUÉSPED (MOBILE FIRST INTEGRADO) -->
+  <main id="guest-view" class="max-w-md mx-auto px-4 py-6 space-y-6 hidden">
+
+    <!-- HERO / BIENVENIDA -->
+    <section class="bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-12 -top-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      
+      <div class="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Experiencia VIP</span>
+      </div>
+      <h2 id="guest-welcome-title" class="text-2xl font-extrabold text-white mb-1">¡Hola, Huésped! 👋</h2>
+      <p id="guest-welcome-subtitle" class="text-xs text-slate-300">Bienvenido a tu apartamento. ¿En qué podemos hacer perfecta tu estancia hoy?</p>
+
+      <!-- DATOS RÁPIDOS DE ESTANCIA (WIFI) -->
+      <div class="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-3">
+        <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex items-center gap-3">
+          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+            <i data-lucide="wifi" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] text-slate-400 font-medium">Red WiFi</p>
+            <p id="guest-wifi-name" class="text-xs font-bold text-slate-200 truncate">No configurado</p>
+          </div>
+        </div>
+        <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex items-center gap-3">
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+            <i data-lucide="key-round" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] text-slate-400 font-medium">Configuración</p>
+            <p id="guest-wifi-pass" class="text-xs font-bold text-slate-200 truncate">Ver detalles</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MOTOR 1: CONCIERGE IA (INTERACCIÓN RÁPIDA) -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="bot" class="w-4 h-4 text-indigo-400"></i>
+          Concierge IA
+        </h3>
+        <span class="text-[10px] text-slate-400">Responde al instante</span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-2 shadow-lg">
+        <input type="text" id="ai-chat-input" placeholder="¿Cómo funciona el aire acondicionado?..." class="bg-transparent flex-1 text-xs text-white placeholder-slate-500 focus:outline-none px-2">
+        <button onclick="sendAiMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl transition-colors shadow-md shadow-indigo-600/30">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- MOTOR 2: DISCOVERY / EXPLORAR LA ZONA -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="map-pin" class="w-4 h-4 text-rose-400"></i>
+          Descubre tu zona
+        </h3>
+        <span class="text-[10px] text-slate-400">Google Maps Integration</span>
+      </div>
+
+      <div class="grid grid-cols-4 gap-2.5">
+        <button onclick="triggerDiscovery('Comer')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+            <i data-lucide="utensils" class="w-4 h-4"></i>
+          </div>
+          <span class="text-[10px] font-medium text-slate-300">Comer</span>
+        </button>
+
+        <button onclick="triggerDiscovery('Playas')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+          <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl">
+            <i data-lucide="waves" class="w-4 h-4"></i>
+          </div>
+          <span class="text-[10px] font-medium text-slate-300">Playas</span>
+        </button>
+
+        <button onclick="triggerDiscovery('Supermercados')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          </div>
+          <span class="text-[10px] font-medium text-slate-300">Super</span>
+        </button>
+
+        <button onclick="triggerDiscovery('Farmacia')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3 rounded-2xl flex flex-col items-center gap-1.5 transition-all active:scale-95">
+          <div class="p-2 bg-rose-500/10 text-rose-400 rounded-xl">
+            <i data-lucide="pill" class="w-4 h-4"></i>
+          </div>
+          <span class="text-[10px] font-medium text-slate-300">Farmacia</span>
+        </button>
+      </div>
+
+      <button onclick="triggerDiscovery('Recomendación IA')" class="w-full bg-slate-900 hover:bg-slate-800/80 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-purple-500/10 text-purple-400 rounded-xl">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-white">¿No sabes qué hacer?</p>
+            <p class="text-[10px] text-slate-400">Pídele una recomendación a la IA según tu ánimo</p>
+          </div>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+      </button>
+    </section>
+
+    <!-- MOTOR 3: SOLICITAR AYUDA / SERVICIOS DE LA ESTANCIA -->
+    <section class="space-y-3">
+      <h3 class="text-sm font-bold text-white flex items-center gap-2">
+        <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+        Solicitudes de la Estancia
+      </h3>
+
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="requestService('Toallas adicionales', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl">
+            <i data-lucide="shirt" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-white">Toallas</p>
+            <p class="text-[10px] text-slate-400">Pedir adicionales</p>
+          </div>
+        </button>
+
+        <button onclick="requestService('Limpieza de apartamento', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-blue-500/10 text-blue-400 rounded-xl">
+            <i data-lucide="sparkle" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-white">Limpieza</p>
+            <p class="text-[10px] text-slate-400">Programar aseo</p>
+          </div>
+        </button>
+
+        <button onclick="requestService('Reporte de falla técnica', 'issue')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+            <i data-lucide="wrench" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-white">Soporte</p>
+            <p class="text-[10px] text-slate-400">Reportar falla</p>
+          </div>
+        </button>
+
+        <button onclick="requestService('Instrucciones de Checkout solicitadas', 'request')" class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-3.5 rounded-2xl flex items-center gap-3 text-left transition-all active:scale-95">
+          <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-white">Checkout</p>
+            <p class="text-[10px] text-slate-400">Instrucciones salida</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BARRA NAVEGACIÓN INFERIOR (PWA TAB BAR PARA HUÉSPED) -->
+  <nav id="guest-nav" class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur border-t border-slate-800 py-2 px-6 z-50 hidden">
+    <div class="max-w-md mx-auto flex items-center justify-around">
+      <button class="flex flex-col items-center gap-1 text-indigo-400">
+        <i data-lucide="home" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Inicio</span>
+      </button>
+
+      <button onclick="focusChat()" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+        <i data-lucide="message-square-text" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Chat IA</span>
+      </button>
+
+      <button onclick="triggerDiscovery('General')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+        <i data-lucide="map" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Explorar</span>
+      </button>
+
+      <button onclick="requestService('Ayuda general solicitada', 'request')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300">
+        <i data-lucide="help-circle" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Ayuda</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL: REGISTRAR NUEVA PROPIEDAD (CON GENERACIÓN DE QR Y URL DINÁMICA) -->
+  <div id="propertyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="home" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-lg text-white">Registrar Nueva Propiedad (Contexto IA)</h3>
+        </div>
+        <button onclick="toggleModal(false)" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <form id="propertyForm" onsubmit="createProperty(event)" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Nombre de la Propiedad / Edificio *</label>
+            <input type="text" id="propName" required placeholder="Ej: Ocean View" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Número o ID de Apartamento *</label>
+            <input type="text" id="propId" required placeholder="Ej: 1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Red Wi-Fi (SSID)</label>
+            <input type="text" id="propWifiName" placeholder="Ej: Ocean_Guest_1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Contraseña Wi-Fi</label>
+            <input type="text" id="propWifiPass" placeholder="Ej: welcome1204" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Instrucciones de Llegada y Check-in (para el Cliente y la IA)</label>
+          <textarea id="propInstructions" rows="2" placeholder="Ej: Entregar llave en recepción o usar cerradura inteligente código 1234..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Recomendaciones Locales / Reglas (Base de conocimiento para la IA)</label>
+          <textarea id="propRules" rows="2" placeholder="Ej: No fumar en el balcón, aire acondicionado debe apagarse al salir..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-3 border-t border-slate-800">
+          <button type="button" onclick="toggleModal(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-xl transition-colors">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-indigo-600/20">Guardar y Generar QR</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: VISUALIZAR QR Y URL DEL HUÉSPED -->
+  <div id="qrModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 id="qrModalTitle" class="font-bold text-base text-white">Acceso del Huésped</h3>
+        <button onclick="toggleQrModal(false)" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <div id="qrImageContainer" class="bg-white p-4 rounded-xl flex items-center justify-center min-h-[200px]">
+        <span class="text-slate-900 text-xs">Cargando código QR...</span>
+      </div>
+
+      <div class="space-y-2 text-left">
+        <label class="block text-xs font-medium text-slate-400">Enlace directo (para enviar por WhatsApp):</label>
+        <div class="flex gap-2">
+          <input type="text" id="guestUrlInput" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-indigo-300 font-mono focus:outline-none">
+          <button onclick="copyGuestUrl()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg transition-colors flex items-center justify-center" title="Copiar enlace">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="simulatedOpenGuestView()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-xl transition-colors">
+          Probar Vista Huésped
+        </button>
+        <button onclick="toggleQrModal(false)" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-xl transition-colors">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE INTEGRACIÓN TOTAL (BACKEND + AMBAS VISTAS) -->
+  <script>
+    lucide.createIcons();
+
+    const API_URL = 'https://huesped.onrender.com/api';
+    const ownerId = 'luis_castellar_admin';
+    
+    // Estado activo actual para la simulación del huésped
+    let currentActiveApartment = {
+      name: "Ocean View 1204",
+      apartment_id: "1204",
+      wifi_config: "Ocean_Guest_1204 / Pass: beach2026",
+      guest_url: window.location.href
+    };
+
+    function switchView(view) {
+      const hostHeader = document.getElementById('host-header');
+      const guestHeader = document.getElementById('guest-header');
+      const hostView = document.getElementById('host-view');
+      const guestView = document.getElementById('guest-view');
+      const guestNav = document.getElementById('guest-nav');
+
+      if (view === 'guest') {
+        hostHeader.classList.add('hidden');
+        hostView.classList.add('hidden');
+        guestHeader.classList.remove('hidden');
+        guestView.classList.remove('hidden');
+        guestNav.classList.remove('hidden');
+      } else {
+        hostHeader.classList.remove('hidden');
+        hostView.classList.remove('hidden');
+        guestHeader.classList.add('hidden');
+        guestView.classList.add('hidden');
+        guestNav.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleModal(show) {
+      const modal = document.getElementById('propertyModal');
+      if (show) {
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+        document.getElementById('propertyForm').reset();
+      }
+      lucide.createIcons();
+    }
+
+    function toggleQrModal(show, name = '', qrUrl = '', guestUrl = '') {
+      const modal = document.getElementById('qrModal');
+      if (show) {
+        document.getElementById('qrModalTitle').innerText = `QR: ${name}`;
+        document.getElementById('guestUrlInput').value = guestUrl;
+        
+        const qrContainer = document.getElementById('qrImageContainer');
+        if (qrUrl.startsWith('data:image')) {
+          qrContainer.innerHTML = `<img src="${qrUrl}" alt="Código QR Huésped" class="w-48 h-48 object-contain mx-auto">`;
+        } else {
+          const encodedUrl = encodeURIComponent(guestUrl);
+          qrContainer.innerHTML = `
+            <div class="space-y-2">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodedUrl}" alt="QR Code" class="mx-auto w-40 h-40">
+              <a href="${guestUrl}" target="_blank" class="text-indigo-400 underline text-[11px] font-medium block truncate">${guestUrl}</a>
+            </div>
+          `;
+        }
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function copyGuestUrl() {
+      const input = document.getElementById('guestUrlInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert('¡Enlace copiado al portapapeles!');
+    }
+
+    function simulatedOpenGuestView() {
+      toggleQrModal(false);
+      switchView('guest');
+    }
+
+    async function createProperty(event) {
+      event.preventDefault();
+      
+      const name = document.getElementById('propName').value;
+      const apartment_id = document.getElementById('propId').value;
+      const wifi_name = document.getElementById('propWifiName').value;
+      const wifi_pass = document.getElementById('propWifiPass').value;
+      const instructions = document.getElementById('propInstructions').value;
+      const rules = document.getElementById('propRules').value;
+
+      try {
+        const res = await fetch(`${API_URL}/owner/properties`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerId,
+            name: `${name} ${apartment_id}`,
+            apartment_id,
+            wifi_config: wifi_name ? `${wifi_name} / Pass: ${wifi_pass}` : 'No configurado',
+            instructions,
+            rules
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('¡Propiedad creada con éxito y contexto sincronizado con la IA!');
+          toggleModal(false);
+          loadDashboardData();
+        } else {
+          alert(data.error || 'Error al crear la propiedad');
+        }
+      } catch (err) {
+        console.error('Error de red:', err);
+        alert('No se pudo conectar con el servidor para registrar la propiedad.');
+      }
+    }
+
+    async function loadDashboardData() {
+      try {
+        const res = await fetch(`${API_URL}/owner/dashboard/${ownerId}`);
+        if (!res.ok) throw new Error('Error al conectar con el servidor');
+        const data = await res.json();
+        
+        const ticketsContainer = document.getElementById('tickets-container');
+        const aptTableBody = document.getElementById('apartments-table-body');
+        
+        ticketsContainer.innerHTML = '';
+        aptTableBody.innerHTML = '';
+
+        let allTickets = [];
+        let propertyCount = data.dashboard ? data.dashboard.length : 0;
+
+        document.getElementById('kpi-properties').innerText = propertyCount;
+
+        if(data.dashboard && data.dashboard.length > 0) {
+          data.dashboard.forEach(apt => {
+            const safeName = apt.name.replace(/'/g, "\\'");
+            const safeQr = apt.qr_code || '';
+            // OPCIÓN 2 IMPLEMENTADA AQUÍ: Apunta limpiamente a la raíz con ?id=...
+            const safeUrl = apt.guest_url || `${window.location.origin}/?id=${apt.apartment_id}`;
+
+            aptTableBody.innerHTML += `
+              <tr class="hover:bg-slate-800/40 transition-colors">
+                <td class="px-4 py-3 font-medium text-white flex items-center gap-3">
+                  <div class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
+                    <i data-lucide="building" class="w-4 h-4"></i>
+                  </div>
+                  ${apt.name}
+                </td>
+                <td class="px-4 py-3 font-mono text-xs text-slate-300">${apt.apartment_id}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ${apt.status || 'Activo'}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <button onclick="toggleQrModal(true, '${safeName}', '${safeQr}', '${safeUrl}')" class="p-2 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg transition-colors" title="Ver QR y Enlace">
+                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                  </button>
+                </td>
+              </tr>
+            `;
+
+            if(apt.pending_tickets && apt.pending_tickets.length > 0) {
+              apt.pending_tickets.forEach(ticket => {
+                allTickets.push({ ...ticket, apartmentName: apt.name });
+              });
+            }
+          });
+        } else {
+          aptTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-xs text-slate-500">No hay propiedades registradas para este anfitrión.</td></tr>`;
+        }
+
+        document.getElementById('kpi-tickets').innerText = allTickets.length;
+
+        if(allTickets.length === 0) {
+          ticketsContainer.innerHTML = `
+            <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 text-center text-xs text-slate-400">
+              🎉 ¡Excelente! No hay tickets ni incidencias pendientes en este momento.
+            </div>
+          `;
+        } else {
+          allTickets.forEach(ticket => {
+            const badgeColor = ticket.type === 'issue' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            const typeLabel = ticket.type === 'issue' ? 'Urgente / Falla' : 'Solicitud';
+
+            ticketsContainer.innerHTML += `
+              <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="${badgeColor} text-xs px-2.5 py-0.5 rounded-full border font-medium">${typeLabel}</span>
+                    <span class="font-semibold text-white">${ticket.apartmentName}</span>
+                    <span class="text-slate-500 text-xs">• ${ticket.category}</span>
+                  </div>
+                  <p class="text-slate-300 text-sm">${ticket.description}</p>
+                </div>
+                <div>
+                  <button onclick="alert('Atendiendo solicitud de ${ticket.apartmentName}...');" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg transition-colors shadow-lg shadow-indigo-600/20 w-full sm:w-auto">
+                    Atender Solicitud
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        lucide.createIcons();
+      } catch (error) {
+        console.error('Error cargando el dashboard del anfitrión:', error);
+        document.getElementById('tickets-container').innerHTML = `
+          <div class="bg-rose-950/30 border border-rose-500/30 rounded-xl p-4 text-center text-xs text-rose-400">
+            Error conectando con el servidor backend. Asegúrate de que el servidor esté activo.
+          </div>
+        `;
+      }
+    }
+
+    // Funciones interactivas para la vista de Huésped
+    function sendAiMessage() {
+      const input = document.getElementById('ai-chat-input');
+      if (!input.value.trim()) return;
+      alert(`[Concierge IA]: He recibido tu consulta: "${input.value}". Un agente virtual procesará tu respuesta de inmediato.`);
+      input.value = '';
+    }
+
+    function triggerDiscovery(category) {
+      alert(`[Discovery IA]: Buscando los mejores sitios de la categoría "${category}" cerca de tu ubicación actual en Google Maps...`);
+    }
+
+    function requestService(serviceName, type) {
+      alert(`[Servicios de Estancia]: Tu solicitud de "${serviceName}" ha sido enviada al anfitrión exitosamente.`);
+    }
+
+    function focusChat() {
+      const chatInput = document.getElementById('ai-chat-input');
+      if(chatInput) {
+        chatInput.focus();
+        chatInput.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Cargar datos iniciales al iniciar y verificar parámetros en URL (?id=...)
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const aptId = urlParams.get('id') || urlParams.get('apt');
+
+      if (aptId) {
+        // Si entra un huésped con parámetro, cargamos su vista directamente
+        switchView('guest');
+        // Opcional: Podrías hacer un fetch al backend para traer los datos reales del aptId si lo deseas
+        document.getElementById('guest-app-title').innerText = `Apartamento ID: ${aptId}`;
+        document.getElementById('guest-welcome-subtitle').innerText = `Bienvenido al apartamento ${aptId}. Disfruta tu estancia.`;
+      }
+
+      loadDashboardData();
+    });
+  </script>
+</body>
+</html>
