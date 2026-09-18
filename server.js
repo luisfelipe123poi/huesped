@@ -493,6 +493,79 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   }
 });
 
+// Endpoint que responde al escaneo del QR o ingreso a la app
+app.post('/api/guest/authenticate-qr', async (req, res) => {
+  try {
+    const { aptId } = req.body;
+
+    const apartment = await Apartment.findOne({ apartment_id: aptId });
+    if (!apartment) {
+      return res.status(404).json({ success: false, message: 'Propiedad no encontrada.' });
+    }
+
+    // 1. Obtener la reserva actual desde el iCal
+    const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
+
+    if (!activeReservation) {
+      return res.status(403).json({
+        success: false,
+        code: 'NO_ACTIVE_RESERVATION',
+        message: 'No hay ninguna estancia activa en este momento para esta propiedad.'
+      });
+    }
+
+    const now = new Date();
+    const checkInDate = new Date(activeReservation.checkIn);
+    const checkOutDate = new Date(activeReservation.checkOut);
+
+    // 2. Validar si la estancia ya comenzó
+    if (now < checkInDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_NOT_STARTED',
+        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
+      });
+    }
+
+    // 3. Validar si la estancia ya finalizó
+    if (now >= checkOutDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_EXPIRED',
+        message: 'Tu estancia ha finalizado. El acceso a la plataforma exclusivo de la propiedad ha sido desactivado.'
+      });
+    }
+
+    // 4. Calcular el tiempo de vida restante exacto en segundos para el JWT
+    const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
+
+    // 5. Crear el Token Único firmado que expira automáticamente en el Check-out
+    const stayToken = jwt.sign(
+      {
+        aptId: apartment.apartment_id,
+        reservationId: activeReservation.id || activeReservation.uid, // ID único de la reserva iCal
+        guestName: activeReservation.guestName || 'Huésped VIP',
+        checkIn: activeReservation.checkIn,
+        checkOut: activeReservation.checkOut
+      },
+      JWT_SECRET,
+      { expiresIn: secondsUntilCheckOut } // Autodestrucción calculada
+    );
+
+    res.json({
+      success: true,
+      token: stayToken,
+      guestName: activeReservation.guestName,
+      checkOut: activeReservation.checkOut,
+      redirectUrl: `/platform?token=${stayToken}&apt=${aptId}`
+    });
+
+  } catch (error) {
+    console.error('Error al autenticar QR de la estancia:', error);
+    res.status(500).json({ success: false, message: 'Error interno de validación.' });
+  }
+});
+
 // ==========================================
 // 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
 // ==========================================
