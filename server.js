@@ -123,7 +123,6 @@ async function getActiveReservationFromIcal(icalUrl) {
 // 4. RUTAS DE LA API (Declaradas explícitamente)
 // ==========================================
 
-// Endpoint unificado para la autenticación de estancia vía QR
 app.post('/api/guest/authenticate-qr', async (req, res) => {
   try {
     const { aptId } = req.body;
@@ -135,9 +134,8 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       });
     }
 
-    const cleanAptId = String(aptId).trim();
+    const cleanAptId = decodeURIComponent(String(aptId)).trim();
 
-    // Búsqueda segura considerando si el string es un ObjectId válido o un apartment_id regular
     const queryConditions = [{ apartment_id: cleanAptId }];
     if (mongoose.Types.ObjectId.isValid(cleanAptId)) {
       queryConditions.push({ _id: cleanAptId });
@@ -158,7 +156,7 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       return res.status(403).json({
         success: false,
         code: 'NO_ACTIVE_RESERVATION',
-        message: 'No hay ninguna reserva activa registrada en este momento para esta propiedad.'
+        message: 'No encontramos una reserva activa para este enlace en este momento.'
       });
     }
 
@@ -166,37 +164,32 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
     const checkInDate = new Date(activeReservation.checkIn);
     const checkOutDate = new Date(activeReservation.checkOut);
 
+    // ESCENARIO B: La Estancia Aún No Inicia
     if (now < checkInDate) {
       return res.status(403).json({
         success: false,
         code: 'STAY_NOT_STARTED',
-        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
+        message: 'Tu estancia aún no ha comenzado. El acceso se activará automáticamente el día de tu Check-in.',
+        checkIn: activeReservation.checkIn
       });
     }
 
+    // ESCENARIO C: La Estancia Ya Finalizó
     if (now >= checkOutDate) {
       return res.status(403).json({
         success: false,
         code: 'STAY_EXPIRED',
-        message: 'Tu estancia ha finalizado. El acceso exclusivo a la plataforma ha expirado.'
+        message: 'Tu estancia ha finalizado. Esperamos que hayas disfrutado tu estadía en Cartagena.'
       });
     }
 
     const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
 
-    if (secondsUntilCheckOut <= 0) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_EXPIRED',
-        message: 'Tu estancia ha finalizado.'
-      });
-    }
-
     const stayToken = jwt.sign(
       {
         aptId: apartment.apartment_id || apartment._id,
-        reservationId: activeReservation.id || activeReservation.uid,
-        guestName: activeReservation.guestName || 'Huésped VIP',
+        reservationId: activeReservation.id,
+        guestName: activeReservation.guestName,
         checkIn: activeReservation.checkIn,
         checkOut: activeReservation.checkOut
       },
@@ -204,12 +197,13 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       { expiresIn: secondsUntilCheckOut }
     );
 
+    // ESCENARIO A: Reserva Activa (Éxito)
     return res.json({
       success: true,
       token: stayToken,
       guestName: activeReservation.guestName || 'Huésped VIP',
-      checkOut: activeReservation.checkOut,
-      redirectUrl: `/platform?token=${stayToken}&apt=${apartment.apartment_id || apartment._id}`
+      propertyName: apartment.name,
+      checkOut: activeReservation.checkOut
     });
 
   } catch (error) {
