@@ -12,11 +12,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_concierge_luxury_
 
 const app = express();
 
-// Middlewares
-app.use(express.json());
-app.use(cors());
+// ==========================================
+// 1. MIDDLEWARES (CORS Y PARSEO CONFIGURADOS CORRECTAMENTE)
+// ==========================================
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
-// 1. Inicializar OpenAI
+// Responder explícitamente a las peticiones Preflight OPTIONS
+app.options('*', cors());
+
+app.use(express.json());
+
+// 1.1 Inicializar OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -33,16 +43,15 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
-// Esquema de Apartamento Actualizado
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   owner_id: { type: String, required: true },
-  ownerId: { type: String }, // Compatibilidad con el dashboard del anfitrión
+  ownerId: { type: String },
   wifi_config: { type: String, default: 'No configurado' },
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
-  ical_url: { type: String, default: '' }, // Sincronización iCal de Airbnb
+  ical_url: { type: String, default: '' },
   wifi: {
     ssid: String,
     pass: String
@@ -65,7 +74,6 @@ const ApartmentSchema = new mongoose.Schema({
 
 const Apartment = mongoose.model('Apartment', ApartmentSchema);
 
-// Esquema de Ticket
 const TicketSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true },
   type: { type: String, enum: ['question', 'request', 'issue'], required: true },
@@ -94,7 +102,6 @@ async function getActiveReservationFromIcal(icalUrl) {
         const startDate = new Date(event.start);
         const endDate = new Date(event.end);
 
-        // Si la reserva está activa o vigente
         if (now >= startDate && now <= endDate) {
           return {
             id: event.uid || k,
@@ -113,8 +120,106 @@ async function getActiveReservationFromIcal(icalUrl) {
 }
 
 // ==========================================
-// 4. RUTAS DE LA API (Endpoints)
+// 4. RUTAS DE LA API (Declaradas explícitamente)
 // ==========================================
+
+// Endpoint unificado para la autenticación de estancia vía QR
+app.post('/api/guest/authenticate-qr', async (req, res) => {
+  try {
+    const { aptId } = req.body;
+
+    if (!aptId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere el ID de la propiedad.' 
+      });
+    }
+
+    const cleanAptId = String(aptId).trim();
+
+    // Búsqueda segura considerando si el string es un ObjectId válido o un apartment_id regular
+    const queryConditions = [{ apartment_id: cleanAptId }];
+    if (mongoose.Types.ObjectId.isValid(cleanAptId)) {
+      queryConditions.push({ _id: cleanAptId });
+    }
+
+    const apartment = await Apartment.findOne({ $or: queryConditions });
+
+    if (!apartment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Propiedad no encontrada.' 
+      });
+    }
+
+    const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
+
+    if (!activeReservation) {
+      return res.status(403).json({
+        success: false,
+        code: 'NO_ACTIVE_RESERVATION',
+        message: 'No hay ninguna reserva activa registrada en este momento para esta propiedad.'
+      });
+    }
+
+    const now = new Date();
+    const checkInDate = new Date(activeReservation.checkIn);
+    const checkOutDate = new Date(activeReservation.checkOut);
+
+    if (now < checkInDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_NOT_STARTED',
+        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
+      });
+    }
+
+    if (now >= checkOutDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_EXPIRED',
+        message: 'Tu estancia ha finalizado. El acceso exclusivo a la plataforma ha expirado.'
+      });
+    }
+
+    const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
+
+    if (secondsUntilCheckOut <= 0) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_EXPIRED',
+        message: 'Tu estancia ha finalizado.'
+      });
+    }
+
+    const stayToken = jwt.sign(
+      {
+        aptId: apartment.apartment_id || apartment._id,
+        reservationId: activeReservation.id || activeReservation.uid,
+        guestName: activeReservation.guestName || 'Huésped VIP',
+        checkIn: activeReservation.checkIn,
+        checkOut: activeReservation.checkOut
+      },
+      JWT_SECRET,
+      { expiresIn: secondsUntilCheckOut }
+    );
+
+    return res.json({
+      success: true,
+      token: stayToken,
+      guestName: activeReservation.guestName || 'Huésped VIP',
+      checkOut: activeReservation.checkOut,
+      redirectUrl: `/platform?token=${stayToken}&apt=${apartment.apartment_id || apartment._id}`
+    });
+
+  } catch (error) {
+    console.error('Error en authenticate-qr:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Error interno del servidor al validar el acceso.' 
+    });
+  }
+});
 
 // [GET] Obtener el Digital Twin del apartamento
 app.get('/api/apartment/:id', async (req, res) => {
@@ -181,14 +286,11 @@ app.post('/api/chat', async (req, res) => {
       return res.status(404).json({ error: 'Apartamento no encontrado' });
     }
 
-    // Inicializar memoria para este apartamento si no existe
     if (!recentRecommendations[apartment_id]) {
       recentRecommendations[apartment_id] = [];
     }
 
     const avoidedPlaces = recentRecommendations[apartment_id];
-
-    // Obtener la información de la reserva en tiempo real desde el iCal de Airbnb
     const reservation = await getActiveReservationFromIcal(apartment.ical_url);
 
     let calendarContext = reservation 
@@ -336,7 +438,6 @@ app.post('/api/chat', async (req, res) => {
       try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(cleanAptRegex, '').trim(); } catch (e) {}
     }
 
-    // 1. Intentar capturar con las etiquetas completas [PLACE_DATA] ... [/PLACE_DATA]
     const placeRegex = /\[PLACE_DATA\]([\s\S]*?)\[\/PLACE_DATA\]/i;
     const matchPlace = aiResponse.match(placeRegex);
     if (matchPlace) {
@@ -344,9 +445,7 @@ app.post('/api/chat', async (req, res) => {
         placeCardData = JSON.parse(matchPlace[1].trim()); 
       } catch (e) {}
       aiResponse = aiResponse.replace(placeRegex, '').trim();
-    } 
-    // 2. Fallback por si la IA devuelve el JSON suelto sin las etiquetas de corchetes
-    else {
+    } else {
       const looseJsonRegex = /\{[\s\S]*?"nombre"[\s\S]*?"direccion"[\s\S]*?\}/i;
       const matchLoose = aiResponse.match(looseJsonRegex);
       if (matchLoose) {
@@ -363,7 +462,6 @@ app.post('/api/chat', async (req, res) => {
       try { tourCardData = JSON.parse(matchTour[1].trim()); aiResponse = aiResponse.replace(tourRegex, '').trim(); } catch (e) {}
     }
 
-    // Limpieza general de cualquier resto de etiqueta que haya quedado volando
     aiResponse = aiResponse.replace(/\[\/?PLACE_DATA\]/gi, '').trim();
 
     res.json({ 
@@ -484,108 +582,8 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   }
 });
 
-// Endpoint unificado para la autenticación de estancia vía QR
-app.post('/api/guest/authenticate-qr', async (req, res) => {
-  try {
-    const { aptId } = req.body;
-
-    // 1. Validar que la petición incluya el parámetro requerido
-    if (!aptId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Se requiere el ID de la propiedad.' 
-      });
-    }
-
-    // 2. Buscar apartamento en la base de datos por apartment_id o por _id de MongoDB
-    const apartment = await Apartment.findOne({
-      $or: [{ apartment_id: aptId }, { _id: aptId }]
-    });
-
-    if (!apartment) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Propiedad no encontrada.' 
-      });
-    }
-
-    // 3. Consultar la estancia/reserva activa en el iCal
-    const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
-
-    if (!activeReservation) {
-      return res.status(403).json({
-        success: false,
-        code: 'NO_ACTIVE_RESERVATION',
-        message: 'No hay ninguna reserva activa registrada en este momento para esta propiedad.'
-      });
-    }
-
-    const now = new Date();
-    const checkInDate = new Date(activeReservation.checkIn);
-    const checkOutDate = new Date(activeReservation.checkOut);
-
-    // 4. Validaciones de tiempo de la reserva
-    if (now < checkInDate) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_NOT_STARTED',
-        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
-      });
-    }
-
-    if (now >= checkOutDate) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_EXPIRED',
-        message: 'Tu estancia ha finalizado. El acceso exclusivo a la plataforma ha expirado.'
-      });
-    }
-
-    // 5. Calcular tiempo de vida exacto del token en segundos hasta el check-out
-    const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
-
-    // Evitar que expiresIn sea menor o igual a 0 por algún desfase de milisegundos
-    if (secondsUntilCheckOut <= 0) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_EXPIRED',
-        message: 'Tu estancia ha finalizado.'
-      });
-    }
-
-    // 6. Generar JWT firmado con los datos de la estancia
-    const stayToken = jwt.sign(
-      {
-        aptId: apartment.apartment_id || apartment._id,
-        reservationId: activeReservation.id || activeReservation.uid,
-        guestName: activeReservation.guestName || 'Huésped VIP',
-        checkIn: activeReservation.checkIn,
-        checkOut: activeReservation.checkOut
-      },
-      JWT_SECRET,
-      { expiresIn: secondsUntilCheckOut }
-    );
-
-    // 7. Respuesta exitosa con datos de redirección
-    return res.json({
-      success: true,
-      token: stayToken,
-      guestName: activeReservation.guestName || 'Huésped VIP',
-      checkOut: activeReservation.checkOut,
-      redirectUrl: `/platform?token=${stayToken}&apt=${apartment.apartment_id || apartment._id}`
-    });
-
-  } catch (error) {
-    console.error('Error en authenticate-qr:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor al validar el acceso.' 
-    });
-  }
-});
-
 // ==========================================
-// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
+// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y VISTAS HTML (Al final de las rutas de API)
 // ==========================================
 
 app.use(express.static(path.join(__dirname)));
@@ -596,6 +594,11 @@ app.get('/guest.html', (req, res) => {
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
+});
+
+// Middleware para capturar cualquier ruta no encontrada dentro de /api/
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, message: 'Endpoint no encontrado o método no permitido.' });
 });
 
 // ==========================================
