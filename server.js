@@ -30,7 +30,7 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
-// Esquema de Apartamento Actualizado (con iCal, tickets, selecciones y Pase Dinámico de Sesión)
+// Esquema de Apartamento Actualizado (con iCal, tickets y selecciones embebidas)
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
@@ -40,13 +40,6 @@ const ApartmentSchema = new mongoose.Schema({
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
   ical_url: { type: String, default: '' }, // <-- Campo para sincronización iCal de Airbnb
-  
-  // Campos para el Pase de Visita Dinámico por Sesión e iCal
-  current_session_id: { type: String, default: null },
-  current_guest_name: { type: String, default: '' },
-  current_check_in: { type: Date, default: null },
-  current_check_out: { type: Date, default: null },
-
   wifi: {
     ssid: String,
     pass: String
@@ -83,18 +76,17 @@ const TicketSchema = new mongoose.Schema({
 const Ticket = mongoose.model('Ticket', TicketSchema);
 
 
+
 // ==========================================
-// FUNCIÓN PARA LEER EL iCAL DE AIRBNB Y SINCRONIZAR SESIÓN AUTOMÁTICAMENTE
+// FUNCIÓN PARA LEER EL iCAL DE AIRBNB
 // ==========================================
-async function syncApartmentWithIcal(apartment) {
-  if (!apartment.ical_url) return null;
+async function getActiveReservationFromIcal(icalUrl) {
+  if (!icalUrl) return null;
 
   try {
     // Descarga los eventos del enlace iCal de Airbnb en tiempo real
-    const events = await ical.async.fromURL(apartment.ical_url);
+    const events = await ical.async.fromURL(icalUrl);
     const now = new Date();
-    
-    let currentReservation = null;
 
     for (let k in events) {
       if (events[k].type === 'VEVENT') {
@@ -104,32 +96,15 @@ async function syncApartmentWithIcal(apartment) {
 
         // Validamos si la fecha actual está dentro del rango de la reserva
         if (now >= startDate && now <= endDate) {
-          currentReservation = {
-            checkIn: startDate,
-            checkOut: endDate,
-            summary: event.summary || 'Huésped'
+          return {
+            checkIn: startDate.toISOString().split('T')[0],
+            checkOut: endDate.toISOString().split('T')[0],
+            summary: event.summary // Suele decir "Reservado" o el nombre del huésped
           };
-          break;
         }
       }
     }
-
-    if (currentReservation) {
-      // Creamos un ID de sesión único basado en el rango exacto de las fechas de la reserva del iCal
-      const expectedSessionId = `${apartment.apartment_id}_${currentReservation.checkIn.getTime()}_${currentReservation.checkOut.getTime()}`;
-
-      // Si el session_id actual es diferente, significa que hay un nuevo huésped o una nueva reserva activa
-      if (apartment.current_session_id !== expectedSessionId) {
-        apartment.current_session_id = expectedSessionId;
-        apartment.current_guest_name = currentReservation.summary;
-        apartment.current_check_in = currentReservation.checkIn;
-        apartment.current_check_out = currentReservation.checkOut;
-        await apartment.save();
-        console.log(`[iCal Sync] Nueva sesión activada automáticamente para el apartamento: ${apartment.name}`);
-      }
-    }
-    
-    return currentReservation;
+    return null; // No hay reservas activas en este preciso momento
   } catch (error) {
     console.error("Error al procesar el iCal:", error);
     return null;
@@ -153,67 +128,6 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [GET] Validar el estado de la sesión del Pase Dinámico del Huésped
-app.get('/api/apartment/:id/session-status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const clientSessionId = req.query.sessionId;
-
-    const apartment = await Apartment.findOne({ apartment_id: id });
-    if (!apartment) {
-      return res.status(404).json({ error: 'Apartamento no encontrado' });
-    }
-
-    // Intentar sincronizar automáticamente con iCal en segundo plano
-    await syncApartmentWithIcal(apartment);
-
-    // Comparar la sesión local del cliente con la activa en el servidor
-    const isValid = clientSessionId && clientSessionId === apartment.current_session_id;
-
-    if (!isValid) {
-      return res.json({
-        active: false,
-        message: 'Tu estancia ha finalizado o la sesión ha expirado.'
-      });
-    }
-
-    return res.json({
-      active: true,
-      sessionId: apartment.current_session_id,
-      guestName: apartment.current_guest_name,
-      checkOut: apartment.current_check_out
-    });
-
-  } catch (error) {
-    console.error('Error al verificar sesión:', error);
-    res.status(500).json({ error: 'Error del servidor' });
-  }
-});
-
-// [POST] Finalizar Estancia Manualmente (Desde el Panel de Anfitrión)
-app.post('/api/owner/finalize-stay', async (req, res) => {
-  try {
-    const { ownerId, apartment_id } = req.body;
-
-    const apartment = await Apartment.findOne({ apartment_id, $or: [{ owner_id: ownerId }, { ownerId }] });
-    if (!apartment) {
-      return res.status(404).json({ error: 'Propiedad no encontrada o no autorizada' });
-    }
-
-    // Invalidar la sesión actual asignando un token vacío o destruido
-    apartment.current_session_id = `ended_${Date.now()}`;
-    apartment.current_guest_name = '';
-    apartment.current_check_in = null;
-    apartment.current_check_out = null;
-    await apartment.save();
-
-    res.json({ success: true, message: 'Estancia finalizada correctamente. Sesión anterior bloqueada.' });
-  } catch (error) {
-    console.error('Error al finalizar estancia:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // [POST] Crear o actualizar un apartamento (Forzando Cloudflare para el guest_url e incluyendo iCal)
 app.post('/api/owner/properties', async (req, res) => {
   try {
@@ -230,13 +144,6 @@ app.post('/api/owner/properties', async (req, res) => {
     // Generar código QR en formato Data URL (Base64)
     const qr_code = await QRCode.toDataURL(guest_url);
 
-    // Buscar si ya existe para preservar o inicializar la sesión si es nuevo
-    const existingApt = await Apartment.findOne({ apartment_id });
-    let current_session_id = existingApt ? existingApt.current_session_id : null;
-
-    // Si se acaba de configurar un iCal y no hay sesión activa, intentamos sincronizar de inmediato
-    const tempAptData = { apartment_id, ical_url: ical_url || '', current_session_id };
-    
     const apartment = await Apartment.findOneAndUpdate(
       { apartment_id },
       { 
@@ -248,14 +155,10 @@ app.post('/api/owner/properties', async (req, res) => {
         rules, 
         ical_url: ical_url || '',
         guest_url, 
-        qr_code,
-        ...(current_session_id ? {} : { current_session_id: `session_init_${Date.now()}` })
+        qr_code 
       },
       { new: true, upsert: true }
     );
-
-    // Ejecutar sincronización inicial de iCal
-    await syncApartmentWithIcal(apartment);
 
     res.json({ message: 'Propiedad guardada, iCal conectado y QR generado exitosamente', apartment });
   } catch (error) {
@@ -265,6 +168,7 @@ app.post('/api/owner/properties', async (req, res) => {
 });
 
 // Memoria temporal simple para almacenar los últimos lugares recomendados por apartamento
+// (En producción puedes guardarlo en la base de datos dentro del modelo de Apartment o Session)
 const recentRecommendations = {};
 
 app.post('/api/chat', async (req, res) => {
@@ -288,13 +192,11 @@ app.post('/api/chat', async (req, res) => {
     const avoidedPlaces = recentRecommendations[apartment_id];
 
     // Obtener la información de la reserva en tiempo real desde el iCal de Airbnb
-    const reservationFromIcal = await syncApartmentWithIcal(apartment);
+    const reservation = await getActiveReservationFromIcal(apartment.ical_url);
 
-    let calendarContext = reservationFromIcal 
-      ? `Información real del calendario de reservas: El huésped actual entra el ${reservationFromIcal.checkIn.toISOString().split('T')[0]} y sale el ${reservationFromIcal.checkOut.toISOString().split('T')[0]}.`
-      : (apartment.current_check_in && apartment.current_check_out 
-          ? `Información de sesión activa: El huésped actual se hospeda del ${new Date(apartment.current_check_in).toISOString().split('T')[0]} al ${new Date(apartment.current_check_out).toISOString().split('T')[0]}.`
-          : `No se encontró una reserva activa específica en el calendario para este momento exacto.`);
+    let calendarContext = reservation 
+      ? `Información real del calendario de reservas: El huésped actual entra el ${reservation.checkIn} y sale el ${reservation.checkOut}.`
+      : `No se encontró una reserva activa específica en el calendario para este momento exacto.`;
 
     const systemPrompt = `
       You are the expert virtual assistant and VIP concierge of this luxury apartment ("${apartment.name}") in Cartagena de Colombia.
@@ -437,6 +339,7 @@ app.post('/api/chat', async (req, res) => {
       try { apartmentCardData = JSON.parse(matchApt[1].trim()); aiResponse = aiResponse.replace(cleanAptRegex, '').trim(); } catch (e) {}
     }
 
+    // 1. Intentar capturar con las etiquetas completas [PLACE_DATA] ... [/PLACE_DATA]
     const placeRegex = /\[PLACE_DATA\]([\s\S]*?)\[\/PLACE_DATA\]/i;
     const matchPlace = aiResponse.match(placeRegex);
     if (matchPlace) {
@@ -444,7 +347,9 @@ app.post('/api/chat', async (req, res) => {
         placeCardData = JSON.parse(matchPlace[1].trim()); 
       } catch (e) {}
       aiResponse = aiResponse.replace(placeRegex, '').trim();
-    } else {
+    } 
+    // 2. Fallback por si la IA devuelve el JSON suelto sin las etiquetas de corchetes
+    else {
       const looseJsonRegex = /\{[\s\S]*?"nombre"[\s\S]*?"direccion"[\s\S]*?\}/i;
       const matchLoose = aiResponse.match(looseJsonRegex);
       if (matchLoose) {
@@ -461,6 +366,7 @@ app.post('/api/chat', async (req, res) => {
       try { tourCardData = JSON.parse(matchTour[1].trim()); aiResponse = aiResponse.replace(tourRegex, '').trim(); } catch (e) {}
     }
 
+    // Limpieza general de cualquier resto de etiqueta que haya quedado volando
     aiResponse = aiResponse.replace(/\[\/?PLACE_DATA\]/gi, '').trim();
 
     res.json({ 
@@ -478,7 +384,6 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'Error procesando la solicitud con IA' });
   }
 });
-
 // [POST] Crear un ticket
 app.post('/api/tickets', async (req, res) => {
   try {
@@ -512,7 +417,9 @@ app.get('/api/tickets', async (req, res) => {
       return res.status(400).json({ error: 'Falta el parámetro apartment_id' });
     }
 
+    // Buscamos los tickets ordenados por fecha de creación descendiente (los más recientes primero)
     const tickets = await Ticket.find({ apartment_id }).sort({ createdAt: -1 });
+    
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -524,18 +431,22 @@ app.post('/api/owner/tickets/update', async (req, res) => {
   try {
     const { ownerId, apartment_id, ticket_index, status, host_response } = req.body;
 
-    const property = await Apartment.findOne({ $or: [{ owner_id: ownerId }, { ownerId }], apartment_id });
+    // 1. Buscar la propiedad del anfitrión
+    const property = await Property.findOne({ ownerId, apartment_id });
     if (!property) {
       return res.status(404).json({ error: 'Propiedad no encontrada' });
     }
 
+    // 2. Validar que el array de tickets exista y el índice sea válido
     if (!property.pending_tickets || !property.pending_tickets[ticket_index]) {
       return res.status(404).json({ error: 'Ticket no encontrado en la posición indicada' });
     }
 
+    // 3. Actualizar el estado y la respuesta del anfitrión en ese ticket específico
     property.pending_tickets[ticket_index].status = status;
     property.pending_tickets[ticket_index].host_response = host_response;
 
+    // 4. Guardar los cambios en la base de datos
     await property.save();
 
     res.status(200).json({ success: true, message: '¡Ticket actualizado correctamente!' });
@@ -549,7 +460,7 @@ app.post('/api/owner/tickets/update', async (req, res) => {
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
     const { owner_id } = req.params;
-    const apartments = await Apartment.find({ $or: [{ owner_id }, { ownerId: owner_id }] });
+    const apartments = await Apartment.find({ owner_id });
     const aptIds = apartments.map(a => a.apartment_id);
 
     const tickets = await Ticket.find({ 
