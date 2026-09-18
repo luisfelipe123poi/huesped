@@ -566,6 +566,71 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
   }
 });
 
+// Asegúrate de usar app.post
+app.post('/api/guest/authenticate-qr', async (req, res) => {
+  try {
+    const { aptId } = req.body;
+
+    if (!aptId) {
+      return res.status(400).json({ success: false, message: 'Se requiere el ID del apartamento.' });
+    }
+
+    // Buscar apartamento por ID o ID personalizado
+    const apartment = await Apartment.findOne({ 
+      $or: [{ apartment_id: aptId }, { _id: aptId }] 
+    });
+
+    if (!apartment) {
+      return res.status(404).json({ success: false, message: 'Propiedad no encontrada.' });
+    }
+
+    // Consultar el iCal
+    const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
+
+    if (!activeReservation) {
+      return res.status(403).json({
+        success: false,
+        code: 'NO_ACTIVE_RESERVATION',
+        message: 'No hay ninguna reserva activa registrada en este momento.'
+      });
+    }
+
+    const now = new Date();
+    const checkInDate = new Date(activeReservation.checkIn);
+    const checkOutDate = new Date(activeReservation.checkOut);
+
+    if (now < checkInDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_NOT_STARTED',
+        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
+      });
+    }
+
+    if (now >= checkOutDate) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_EXPIRED',
+        message: 'Tu estancia ha finalizado. El acceso exclusivo a la plataforma ha expirado.'
+      });
+    }
+
+    // Si pasa todas las validaciones, generar token de acceso
+    const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
+    const token = jwt.sign(
+      { aptId: apartment.apartment_id, guest: activeReservation.guestName },
+      JWT_SECRET,
+      { expiresIn: secondsUntilCheckOut }
+    );
+
+    return res.json({ success: true, token });
+
+  } catch (error) {
+    console.error("Error en authenticate-qr:", error);
+    return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+  }
+});
+
 // ==========================================
 // 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
 // ==========================================
