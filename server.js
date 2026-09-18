@@ -484,34 +484,39 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   }
 });
 
-// [POST] Endpoint principal para escaneo QR y autenticación de la estancia
+// Endpoint unificado para la autenticación de estancia vía QR
 app.post('/api/guest/authenticate-qr', async (req, res) => {
   try {
     const { aptId } = req.body;
 
+    // 1. Validar que la petición incluya el parámetro requerido
     if (!aptId) {
-      return res.status(400).json({ success: false, message: 'Se requiere el ID del apartamento.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Se requiere el ID de la propiedad.' 
+      });
     }
 
-    const apartment = await Apartment.findOne({ 
-      $or: [{ apartment_id: aptId }, { _id: mongoose.Types.ObjectId.isValid(aptId) ? aptId : null }] 
+    // 2. Buscar apartamento en la base de datos por apartment_id o por _id de MongoDB
+    const apartment = await Apartment.findOne({
+      $or: [{ apartment_id: aptId }, { _id: aptId }]
     });
 
     if (!apartment) {
-      return res.status(404).json({ success: false, message: 'Propiedad no encontrada en el sistema.' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Propiedad no encontrada.' 
+      });
     }
 
-    if (!apartment.ical_url) {
-      return res.status(400).json({ success: false, message: 'La propiedad no tiene configurado un enlace iCal.' });
-    }
-
+    // 3. Consultar la estancia/reserva activa en el iCal
     const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
 
     if (!activeReservation) {
       return res.status(403).json({
         success: false,
         code: 'NO_ACTIVE_RESERVATION',
-        message: 'No hay ninguna reserva activa registrada en este momento.'
+        message: 'No hay ninguna reserva activa registrada en este momento para esta propiedad.'
       });
     }
 
@@ -519,6 +524,7 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
     const checkInDate = new Date(activeReservation.checkIn);
     const checkOutDate = new Date(activeReservation.checkOut);
 
+    // 4. Validaciones de tiempo de la reserva
     if (now < checkInDate) {
       return res.status(403).json({
         success: false,
@@ -535,30 +541,46 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       });
     }
 
+    // 5. Calcular tiempo de vida exacto del token en segundos hasta el check-out
     const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
+
+    // Evitar que expiresIn sea menor o igual a 0 por algún desfase de milisegundos
+    if (secondsUntilCheckOut <= 0) {
+      return res.status(403).json({
+        success: false,
+        code: 'STAY_EXPIRED',
+        message: 'Tu estancia ha finalizado.'
+      });
+    }
+
+    // 6. Generar JWT firmado con los datos de la estancia
     const stayToken = jwt.sign(
-      { 
-        aptId: apartment.apartment_id, 
-        reservationId: activeReservation.id,
-        guestName: activeReservation.guestName,
+      {
+        aptId: apartment.apartment_id || apartment._id,
+        reservationId: activeReservation.id || activeReservation.uid,
+        guestName: activeReservation.guestName || 'Huésped VIP',
         checkIn: activeReservation.checkIn,
-        checkOut: activeReservation.checkOut 
+        checkOut: activeReservation.checkOut
       },
       JWT_SECRET,
-      { expiresIn: Math.max(secondsUntilCheckOut, 60) }
+      { expiresIn: secondsUntilCheckOut }
     );
 
-    return res.json({ 
-      success: true, 
-      token: stayToken, 
-      guestName: activeReservation.guestName,
+    // 7. Respuesta exitosa con datos de redirección
+    return res.json({
+      success: true,
+      token: stayToken,
+      guestName: activeReservation.guestName || 'Huésped VIP',
       checkOut: activeReservation.checkOut,
-      redirectUrl: `/guest.html?token=${stayToken}&apt=${apartment.apartment_id}`
+      redirectUrl: `/platform?token=${stayToken}&apt=${apartment.apartment_id || apartment._id}`
     });
 
   } catch (error) {
-    console.error("Error en authenticate-qr:", error);
-    return res.status(500).json({ success: false, message: 'Error interno del servidor.' });
+    console.error('Error en authenticate-qr:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Error interno del servidor al validar el acceso.' 
+    });
   }
 });
 
