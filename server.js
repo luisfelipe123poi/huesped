@@ -6,6 +6,9 @@ const OpenAI = require('openai');
 const QRCode = require('qrcode');
 const path = require('path');
 const ical = require('node-ical');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_concierge_luxury_2026';
 
 const app = express();
 
@@ -30,16 +33,16 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
-// Esquema de Apartamento Actualizado (con iCal, tickets y selecciones embebidas)
+// Esquema de Apartamento Actualizado
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   owner_id: { type: String, required: true },
-  ownerId: { type: String }, // Mantiene compatibilidad con el dashboard del anfitrión
+  ownerId: { type: String }, // Compatibilidad con el dashboard del anfitrión
   wifi_config: { type: String, default: 'No configurado' },
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
-  ical_url: { type: String, default: '' }, // <-- Campo para sincronización iCal de Airbnb
+  ical_url: { type: String, default: '' }, // Sincronización iCal de Airbnb
   wifi: {
     ssid: String,
     pass: String
@@ -53,8 +56,8 @@ const ApartmentSchema = new mongoose.Schema({
     question: String,
     answer: String
   }],
-  pending_tickets: { type: Array, default: [] }, // <-- Almacena las consultas/quejas del huésped
-  guest_selections: { type: Array, default: [] }, // <-- Almacena consumos o compras de minibar/tours
+  pending_tickets: { type: Array, default: [] },
+  guest_selections: { type: Array, default: [] },
   guest_url: { type: String },
   qr_code: { type: String },
   createdAt: { type: Date, default: Date.now }
@@ -62,7 +65,7 @@ const ApartmentSchema = new mongoose.Schema({
 
 const Apartment = mongoose.model('Apartment', ApartmentSchema);
 
-// Esquema de Ticket independiente (por si se usa de forma externa)
+// Esquema de Ticket
 const TicketSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true },
   type: { type: String, enum: ['question', 'request', 'issue'], required: true },
@@ -75,8 +78,6 @@ const TicketSchema = new mongoose.Schema({
 
 const Ticket = mongoose.model('Ticket', TicketSchema);
 
-
-
 // ==========================================
 // FUNCIÓN PARA LEER EL iCAL DE AIRBNB
 // ==========================================
@@ -84,7 +85,6 @@ async function getActiveReservationFromIcal(icalUrl) {
   if (!icalUrl) return null;
 
   try {
-    // Descarga los eventos del enlace iCal de Airbnb en tiempo real
     const events = await ical.async.fromURL(icalUrl);
     const now = new Date();
 
@@ -94,17 +94,18 @@ async function getActiveReservationFromIcal(icalUrl) {
         const startDate = new Date(event.start);
         const endDate = new Date(event.end);
 
-        // Validamos si la fecha actual está dentro del rango de la reserva
+        // Si la reserva está activa o vigente
         if (now >= startDate && now <= endDate) {
           return {
-            checkIn: startDate.toISOString().split('T')[0],
-            checkOut: endDate.toISOString().split('T')[0],
-            summary: event.summary // Suele decir "Reservado" o el nombre del huésped
+            id: event.uid || k,
+            checkIn: startDate,
+            checkOut: endDate,
+            guestName: event.summary || 'Huésped VIP'
           };
         }
       }
     }
-    return null; // No hay reservas activas en este preciso momento
+    return null;
   } catch (error) {
     console.error("Error al procesar el iCal:", error);
     return null;
@@ -128,7 +129,7 @@ app.get('/api/apartment/:id', async (req, res) => {
   }
 });
 
-// [POST] Crear o actualizar un apartamento (Forzando Cloudflare para el guest_url e incluyendo iCal)
+// [POST] Crear o actualizar un apartamento
 app.post('/api/owner/properties', async (req, res) => {
   try {
     const { ownerId, name, apartment_id, wifi_config, instructions, rules, ical_url } = req.body;
@@ -137,11 +138,8 @@ app.post('/api/owner/properties', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios (apartment_id, name, ownerId)' });
     }
 
-    // URL base fija directo al frontend de Cloudflare (huesped1)
     const frontendBaseUrl = 'https://huesped1.prestigecloser.com';
     const guest_url = `${frontendBaseUrl}/guest.html?id=${apartment_id}`;
-
-    // Generar código QR en formato Data URL (Base64)
     const qr_code = await QRCode.toDataURL(guest_url);
 
     const apartment = await Apartment.findOneAndUpdate(
@@ -167,10 +165,9 @@ app.post('/api/owner/properties', async (req, res) => {
   }
 });
 
-// Memoria temporal simple para almacenar los últimos lugares recomendados por apartamento
-// (En producción puedes guardarlo en la base de datos dentro del modelo de Apartment o Session)
 const recentRecommendations = {};
 
+// [POST] Chat Concierge con IA
 app.post('/api/chat', async (req, res) => {
   try {
     const { apartment_id, message } = req.body;
@@ -384,6 +381,7 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: 'Error procesando la solicitud con IA' });
   }
 });
+
 // [POST] Crear un ticket
 app.post('/api/tickets', async (req, res) => {
   try {
@@ -408,7 +406,7 @@ app.post('/api/tickets', async (req, res) => {
   }
 });
 
-// [GET] Listar tickets de un apartamento en tiempo real
+// [GET] Listar tickets de un apartamento
 app.get('/api/tickets', async (req, res) => {
   try {
     const { apartment_id } = req.query;
@@ -417,9 +415,7 @@ app.get('/api/tickets', async (req, res) => {
       return res.status(400).json({ error: 'Falta el parámetro apartment_id' });
     }
 
-    // Buscamos los tickets ordenados por fecha de creación descendiente (los más recientes primero)
     const tickets = await Ticket.find({ apartment_id }).sort({ createdAt: -1 });
-    
     res.status(200).json(tickets);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -431,24 +427,19 @@ app.post('/api/owner/tickets/update', async (req, res) => {
   try {
     const { ownerId, apartment_id, ticket_index, status, host_response } = req.body;
 
-    // 1. Buscar la propiedad del anfitrión
-    const property = await Property.findOne({ ownerId, apartment_id });
+    const property = await Apartment.findOne({ $or: [{ owner_id: ownerId }, { ownerId }], apartment_id });
     if (!property) {
       return res.status(404).json({ error: 'Propiedad no encontrada' });
     }
 
-    // 2. Validar que el array de tickets exista y el índice sea válido
     if (!property.pending_tickets || !property.pending_tickets[ticket_index]) {
       return res.status(404).json({ error: 'Ticket no encontrado en la posición indicada' });
     }
 
-    // 3. Actualizar el estado y la respuesta del anfitrión en ese ticket específico
     property.pending_tickets[ticket_index].status = status;
     property.pending_tickets[ticket_index].host_response = host_response;
 
-    // 4. Guardar los cambios en la base de datos
     await property.save();
-
     res.status(200).json({ success: true, message: '¡Ticket actualizado correctamente!' });
   } catch (error) {
     console.error('Error al actualizar ticket:', error);
@@ -460,7 +451,7 @@ app.post('/api/owner/tickets/update', async (req, res) => {
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
     const { owner_id } = req.params;
-    const apartments = await Apartment.find({ owner_id });
+    const apartments = await Apartment.find({ $or: [{ owner_id }, { ownerId: owner_id }] });
     const aptIds = apartments.map(a => a.apartment_id);
 
     const tickets = await Ticket.find({ 
@@ -493,80 +484,7 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   }
 });
 
-// Endpoint que responde al escaneo del QR o ingreso a la app
-app.post('/api/guest/authenticate-qr', async (req, res) => {
-  try {
-    const { aptId } = req.body;
-
-    const apartment = await Apartment.findOne({ apartment_id: aptId });
-    if (!apartment) {
-      return res.status(404).json({ success: false, message: 'Propiedad no encontrada.' });
-    }
-
-    // 1. Obtener la reserva actual desde el iCal
-    const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
-
-    if (!activeReservation) {
-      return res.status(403).json({
-        success: false,
-        code: 'NO_ACTIVE_RESERVATION',
-        message: 'No hay ninguna estancia activa en este momento para esta propiedad.'
-      });
-    }
-
-    const now = new Date();
-    const checkInDate = new Date(activeReservation.checkIn);
-    const checkOutDate = new Date(activeReservation.checkOut);
-
-    // 2. Validar si la estancia ya comenzó
-    if (now < checkInDate) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_NOT_STARTED',
-        message: 'Tu estancia aún no ha comenzado. El acceso se activará el día de tu Check-in.'
-      });
-    }
-
-    // 3. Validar si la estancia ya finalizó
-    if (now >= checkOutDate) {
-      return res.status(403).json({
-        success: false,
-        code: 'STAY_EXPIRED',
-        message: 'Tu estancia ha finalizado. El acceso a la plataforma exclusivo de la propiedad ha sido desactivado.'
-      });
-    }
-
-    // 4. Calcular el tiempo de vida restante exacto en segundos para el JWT
-    const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
-
-    // 5. Crear el Token Único firmado que expira automáticamente en el Check-out
-    const stayToken = jwt.sign(
-      {
-        aptId: apartment.apartment_id,
-        reservationId: activeReservation.id || activeReservation.uid, // ID único de la reserva iCal
-        guestName: activeReservation.guestName || 'Huésped VIP',
-        checkIn: activeReservation.checkIn,
-        checkOut: activeReservation.checkOut
-      },
-      JWT_SECRET,
-      { expiresIn: secondsUntilCheckOut } // Autodestrucción calculada
-    );
-
-    res.json({
-      success: true,
-      token: stayToken,
-      guestName: activeReservation.guestName,
-      checkOut: activeReservation.checkOut,
-      redirectUrl: `/platform?token=${stayToken}&apt=${aptId}`
-    });
-
-  } catch (error) {
-    console.error('Error al autenticar QR de la estancia:', error);
-    res.status(500).json({ success: false, message: 'Error interno de validación.' });
-  }
-});
-
-// Asegúrate de usar app.post
+// [POST] Endpoint principal para escaneo QR y autenticación de la estancia
 app.post('/api/guest/authenticate-qr', async (req, res) => {
   try {
     const { aptId } = req.body;
@@ -575,16 +493,18 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Se requiere el ID del apartamento.' });
     }
 
-    // Buscar apartamento por ID o ID personalizado
     const apartment = await Apartment.findOne({ 
-      $or: [{ apartment_id: aptId }, { _id: aptId }] 
+      $or: [{ apartment_id: aptId }, { _id: mongoose.Types.ObjectId.isValid(aptId) ? aptId : null }] 
     });
 
     if (!apartment) {
-      return res.status(404).json({ success: false, message: 'Propiedad no encontrada.' });
+      return res.status(404).json({ success: false, message: 'Propiedad no encontrada en el sistema.' });
     }
 
-    // Consultar el iCal
+    if (!apartment.ical_url) {
+      return res.status(400).json({ success: false, message: 'La propiedad no tiene configurado un enlace iCal.' });
+    }
+
     const activeReservation = await getActiveReservationFromIcal(apartment.ical_url);
 
     if (!activeReservation) {
@@ -615,15 +535,26 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       });
     }
 
-    // Si pasa todas las validaciones, generar token de acceso
     const secondsUntilCheckOut = Math.floor((checkOutDate.getTime() - now.getTime()) / 1000);
-    const token = jwt.sign(
-      { aptId: apartment.apartment_id, guest: activeReservation.guestName },
+    const stayToken = jwt.sign(
+      { 
+        aptId: apartment.apartment_id, 
+        reservationId: activeReservation.id,
+        guestName: activeReservation.guestName,
+        checkIn: activeReservation.checkIn,
+        checkOut: activeReservation.checkOut 
+      },
       JWT_SECRET,
-      { expiresIn: secondsUntilCheckOut }
+      { expiresIn: Math.max(secondsUntilCheckOut, 60) }
     );
 
-    return res.json({ success: true, token });
+    return res.json({ 
+      success: true, 
+      token: stayToken, 
+      guestName: activeReservation.guestName,
+      checkOut: activeReservation.checkOut,
+      redirectUrl: `/guest.html?token=${stayToken}&apt=${apartment.apartment_id}`
+    });
 
   } catch (error) {
     console.error("Error en authenticate-qr:", error);
@@ -635,15 +566,12 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
 // 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y RUTAS HTML
 // ==========================================
 
-// Servir archivos estáticos desde la raíz
 app.use(express.static(path.join(__dirname)));
 
-// Ruta explícita para el Huésped
 app.get('/guest.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
 
-// Ruta raíz
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'guest.html'));
 });
