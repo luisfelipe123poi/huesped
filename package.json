@@ -14,7 +14,8 @@
     "mongoose": "^8.3.1",
     "openai": "^4.38.3",
     "qrcode": "^1.5.3",
-    "node-ical": "^0.18.0"
+    "node-ical": "^0.18.0",
+    "jsonwebtoken": "^9.0.2"
   },
   "engines": {
     "node": ">=18.x"
