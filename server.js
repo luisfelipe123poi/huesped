@@ -43,8 +43,6 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
-
-
 // 1. Esquema para Subdocumentos de Soporte / Quejas
 const TicketSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true },
@@ -122,6 +120,7 @@ module.exports = {
   Ticket,
   GuestSelection
 };
+
 // ==========================================
 // FUNCIÓN PARA LEER EL iCAL DE AIRBNB
 // ==========================================
@@ -159,10 +158,6 @@ async function getActiveReservationFromIcal(icalUrl) {
 // 4. RUTAS DE LA API (Declaradas explícitamente)
 // ==========================================
 
-// ==========================================
-// RUTAS DE LA API (Deben ir ANTES de express.static)
-// ==========================================
-
 app.post('/api/guest/authenticate-qr', async (req, res) => {
   try {
     const { aptId } = req.body;
@@ -174,10 +169,8 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
       });
     }
 
-    // Decodificar posibles caracteres especiales o URL encoding (ej: %C3%91)
     const cleanAptId = decodeURIComponent(String(aptId)).trim();
 
-    // Búsqueda en MongoDB
     const queryConditions = [{ apartment_id: cleanAptId }];
     if (mongoose.Types.ObjectId.isValid(cleanAptId)) {
       queryConditions.push({ _id: cleanAptId });
@@ -243,7 +236,6 @@ app.post('/api/guest/authenticate-qr', async (req, res) => {
   }
 });
 
-// Manejador específico para capturar cualquier método no soportado en la API
 app.all('/api/guest/authenticate-qr', (req, res) => {
   res.status(405).json({ success: false, message: `El método ${req.method} no está permitido en este endpoint.` });
 });
@@ -507,24 +499,40 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// [POST] Crear un ticket
+// [POST] Crear un ticket desde cliente público/huésped
 app.post('/api/tickets', async (req, res) => {
   try {
     const { apartment_id, type, category, description } = req.body;
     
-    if (!apartment_id || !type || !description) {
+    if (!apartment_id || (!type && !category) || !description) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
+    // 1. Guardar en colección independiente
     const newTicket = new Ticket({
       apartment_id,
-      type,
+      type: type || 'question',
       category: category || 'General',
       description,
       status: 'pending'
     });
-
     await newTicket.save();
+
+    // 2. Guardar también en el documento del apartamento (embebido)
+    const property = await Apartment.findOne({ apartment_id });
+    if (property) {
+      property.pending_tickets.push({
+        _id: newTicket._id,
+        apartment_id,
+        type: type || 'question',
+        category: category || 'General',
+        description,
+        status: 'Pendiente',
+        createdAt: newTicket.createdAt
+      });
+      await property.save();
+    }
+
     res.status(201).json({ message: 'Ticket creado correctamente', ticket: newTicket });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -547,17 +555,71 @@ app.get('/api/tickets', async (req, res) => {
   }
 });
 
+// ==========================================
+// ENDPOINTS ESPECIALIZADOS PARA LA VISTA ANFITRIÓN & POLLING
+// ==========================================
+
+// [GET] Polling de tickets para el Anfitrión
+app.get('/api/owner/tickets', async (req, res) => {
+  try {
+    const { ownerId, apartment_id } = req.query;
+
+    if (!ownerId && !apartment_id) {
+      return res.status(400).json({ error: 'Se requiere ownerId o apartment_id para la consulta.' });
+    }
+
+    let queryFilter = {};
+    if (apartment_id) {
+      queryFilter.apartment_id = apartment_id;
+    } else {
+      const apartments = await Apartment.find({ $or: [{ owner_id: ownerId }, { ownerId }] });
+      const aptIds = apartments.map(a => a.apartment_id);
+      queryFilter.apartment_id = { $in: aptIds };
+    }
+
+    const tickets = await Ticket.find(queryFilter).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, tickets });
+  } catch (error) {
+    console.error('Error al consultar tickets en polling:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// [GET] Polling de consumos/selecciones para el Anfitrión
+app.get('/api/owner/selections', async (req, res) => {
+  try {
+    const { ownerId, apartment_id } = req.query;
+
+    if (!ownerId && !apartment_id) {
+      return res.status(400).json({ error: 'Se requiere ownerId o apartment_id para la consulta.' });
+    }
+
+    let queryFilter = {};
+    if (apartment_id) {
+      queryFilter.apartment_id = apartment_id;
+    } else {
+      const apartments = await Apartment.find({ $or: [{ owner_id: ownerId }, { ownerId }] });
+      const aptIds = apartments.map(a => a.apartment_id);
+      queryFilter.apartment_id = { $in: aptIds };
+    }
+
+    const selections = await GuestSelection.find(queryFilter).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, selections });
+  } catch (error) {
+    console.error('Error al consultar consumos en polling:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // [POST] Actualizar el estado y respuesta de una solicitud/ticket del huésped
 app.post('/api/owner/tickets/update', async (req, res) => {
   try {
     const { ownerId, apartment_id, ticket_index, ticket_id, status, host_response } = req.body;
 
-    // Validación básica de entrada
     if (!apartment_id || (ticket_index === undefined && !ticket_id) || !host_response) {
       return res.status(400).json({ error: 'Faltan parámetros obligatorios para actualizar el ticket.' });
     }
 
-    // 1. Buscar la propiedad asociada al propietario
     const property = await Apartment.findOne({
       apartment_id,
       $or: [{ owner_id: ownerId }, { ownerId }]
@@ -569,35 +631,40 @@ app.post('/api/owner/tickets/update', async (req, res) => {
 
     let ticketUpdated = false;
 
-    // CASO A: Actualizar en modelo independiente `Ticket` (Si existe la colección)
-    if (typeof Ticket !== 'undefined') {
-      const ticketQuery = ticket_id 
-        ? { _id: ticket_id, apartment_id } 
-        : { apartment_id };
+    // CASO A: Actualizar en modelo independiente `Ticket`
+    const ticketQuery = ticket_id 
+      ? { _id: ticket_id, apartment_id } 
+      : { apartment_id };
 
-      const ticketDoc = ticket_id 
-        ? await Ticket.findOne(ticketQuery)
-        : (await Ticket.find({ apartment_id }).sort({ createdAt: -1 }))[ticket_index];
+    const ticketDoc = ticket_id 
+      ? await Ticket.findOne(ticketQuery)
+      : (await Ticket.find({ apartment_id }).sort({ createdAt: -1 }))[ticket_index];
 
-      if (ticketDoc) {
-        ticketDoc.status = status || 'Resuelto';
-        ticketDoc.host_response = host_response;
-        ticketDoc.updatedAt = new Date();
-        await ticketDoc.save();
-        ticketUpdated = true;
-      }
+    if (ticketDoc) {
+      ticketDoc.status = status || 'Resuelto';
+      ticketDoc.host_response = host_response;
+      ticketDoc.updatedAt = new Date();
+      await ticketDoc.save();
+      ticketUpdated = true;
     }
 
-    // CASO B: Actualizar en el arreglo embebido `pending_tickets` dentro de `Apartment`
-    if (Array.isArray(property.pending_tickets) && property.pending_tickets[ticket_index] !== undefined) {
-      property.pending_tickets[ticket_index].status = status || 'Resuelto';
-      property.pending_tickets[ticket_index].host_response = host_response;
-      property.pending_tickets[ticket_index].updatedAt = new Date();
+    // CASO B: Actualizar en el arreglo embebido `pending_tickets`
+    if (Array.isArray(property.pending_tickets) && property.pending_tickets.length > 0) {
+      let targetTicket = null;
+      if (ticket_id) {
+        targetTicket = property.pending_tickets.find(t => t._id && t._id.toString() === ticket_id.toString());
+      } else if (ticket_index !== undefined && property.pending_tickets[ticket_index]) {
+        targetTicket = property.pending_tickets[ticket_index];
+      }
 
-      // Forzar a Mongoose a detectar cambios en subdocumentos/arreglos mixtos
-      property.markModified('pending_tickets');
-      await property.save();
-      ticketUpdated = true;
+      if (targetTicket) {
+        targetTicket.status = status || 'Resuelto';
+        targetTicket.host_response = host_response;
+        targetTicket.updatedAt = new Date();
+        property.markModified('pending_tickets');
+        await property.save();
+        ticketUpdated = true;
+      }
     }
 
     if (!ticketUpdated) {
@@ -615,14 +682,24 @@ app.post('/api/owner/tickets/update', async (req, res) => {
   }
 });
 
+// [POST] Crear un ticket desde la interfaz de huésped
 app.post('/api/guest/tickets', async (req, res) => {
   try {
     const { apartment_id, category, description } = req.body;
 
-    const property = await Property.findOne({ apartment_id });
+    const property = await Apartment.findOne({ apartment_id });
     if (!property) return res.status(404).json({ error: 'Apartamento no encontrado.' });
 
-    const newTicket = {
+    const newTicketDoc = new Ticket({
+      apartment_id,
+      category: category || 'General',
+      description,
+      status: 'pending'
+    });
+    await newTicketDoc.save();
+
+    const newTicketEmbedded = {
+      _id: newTicketDoc._id,
       category: category || 'General',
       description,
       status: 'Pendiente',
@@ -630,34 +707,46 @@ app.post('/api/guest/tickets', async (req, res) => {
       createdAt: new Date()
     };
 
-    property.pending_tickets.push(newTicket);
+    property.pending_tickets.push(newTicketEmbedded);
     await property.save();
 
-    return res.status(201).json({ message: 'Solicitud enviada al anfitrión', ticket: newTicket });
+    return res.status(201).json({ message: 'Solicitud enviada al anfitrión', ticket: newTicketEmbedded });
   } catch (error) {
+    console.error('Error al registrar ticket del huésped:', error);
     return res.status(500).json({ error: 'Error al registrar la solicitud.' });
   }
 });
 
+// [POST] Registrar selecciones/consumos desde la interfaz de huésped
 app.post('/api/guest/selections', async (req, res) => {
   try {
     const { apartment_id, item_name, category, price } = req.body;
 
-    const property = await Property.findOne({ apartment_id });
+    const property = await Apartment.findOne({ apartment_id });
     if (!property) return res.status(404).json({ error: 'Apartamento no encontrado.' });
 
-    const newSelection = {
+    const newSelectionDoc = new GuestSelection({
+      apartment_id,
+      item_name,
+      category: category || 'Minibar',
+      price: price || 0
+    });
+    await newSelectionDoc.save();
+
+    const newSelectionEmbedded = {
+      _id: newSelectionDoc._id,
       item_name,
       category: category || 'Minibar',
       price: price || 0,
       createdAt: new Date()
     };
 
-    property.guest_selections.push(newSelection);
+    property.guest_selections.push(newSelectionEmbedded);
     await property.save();
 
-    return res.status(201).json({ message: 'Consumo registrado', selection: newSelection });
+    return res.status(201).json({ message: 'Consumo registrado', selection: newSelectionEmbedded });
   } catch (error) {
+    console.error('Error al registrar consumo del huésped:', error);
     return res.status(500).json({ error: 'Error al registrar el consumo.' });
   }
 });
@@ -675,7 +764,6 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
     const aptIds = apartments.map(a => a.apartment_id);
 
     // 2. Consultar tickets y consumos asociados a esos apartamentos
-    // Se asume que existen los modelos Ticket y GuestSelection (o Selection)
     const [tickets, selections] = await Promise.all([
       Ticket.find({ apartment_id: { $in: aptIds } }).sort({ createdAt: -1 }),
       GuestSelection.find({ apartment_id: { $in: aptIds } }).sort({ createdAt: -1 })
@@ -683,13 +771,9 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
 
     // 3. Mapear y estructurar la respuesta para el dashboard
     const dashboardData = apartments.map(apt => {
-      // Filtrar tickets del apartamento actual
       const aptTickets = tickets.filter(t => t.apartment_id === apt.apartment_id);
-      
-      // Filtrar consumos/selecciones del apartamento actual
       const aptSelections = selections.filter(s => s.apartment_id === apt.apartment_id);
 
-      // Determinar estado de la propiedad dinámicamente
       const pendingTickets = aptTickets.filter(t => t.status === 'Pendiente' || t.status === 'pending');
       const hasIssues = pendingTickets.some(t => t.type === 'issue' || t.category === 'Queja');
       
@@ -710,7 +794,6 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
         ical_url: apt.ical_url || '',
         guest_url: apt.guest_url || `https://huesped1.prestigecloser.com/guest.html?id=${apt.apartment_id}`,
         qr_code: apt.qr_code || '',
-        // Formatear tickets para la interfaz
         pending_tickets: aptTickets.map(t => ({
           _id: t._id,
           category: t.category || t.type || 'General',
@@ -719,7 +802,6 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
           host_response: t.host_response || t.response || '',
           createdAt: t.createdAt
         })),
-        // Formatear consumos/selecciones para la interfaz
         guest_selections: aptSelections.map(s => ({
           _id: s._id,
           item_name: s.item_name || s.title || s.name || 'Selección',
@@ -736,8 +818,9 @@ app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 // ==========================================
-// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y VISTAS HTML (Al final de las rutas de API)
+// 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y VISTAS HTML
 // ==========================================
 
 app.use(express.static(path.join(__dirname)));
