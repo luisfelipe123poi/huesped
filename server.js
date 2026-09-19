@@ -43,7 +43,7 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
-const mongoose = require('mongoose');
+
 
 // 1. Esquema para Subdocumentos de Soporte / Quejas
 const TicketSchema = new mongoose.Schema({
