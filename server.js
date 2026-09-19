@@ -514,25 +514,115 @@ app.get('/api/tickets', async (req, res) => {
 // [POST] Actualizar el estado y respuesta de una solicitud/ticket del huésped
 app.post('/api/owner/tickets/update', async (req, res) => {
   try {
-    const { ownerId, apartment_id, ticket_index, status, host_response } = req.body;
+    const { ownerId, apartment_id, ticket_index, ticket_id, status, host_response } = req.body;
 
-    const property = await Apartment.findOne({ $or: [{ owner_id: ownerId }, { ownerId }], apartment_id });
+    // Validación básica de entrada
+    if (!apartment_id || (ticket_index === undefined && !ticket_id) || !host_response) {
+      return res.status(400).json({ error: 'Faltan parámetros obligatorios para actualizar el ticket.' });
+    }
+
+    // 1. Buscar la propiedad asociada al propietario
+    const property = await Apartment.findOne({
+      apartment_id,
+      $or: [{ owner_id: ownerId }, { ownerId }]
+    });
+
     if (!property) {
-      return res.status(404).json({ error: 'Propiedad no encontrada' });
+      return res.status(404).json({ error: 'Propiedad no encontrada o no pertenece al anfitrión.' });
     }
 
-    if (!property.pending_tickets || !property.pending_tickets[ticket_index]) {
-      return res.status(404).json({ error: 'Ticket no encontrado en la posición indicada' });
+    let ticketUpdated = false;
+
+    // CASO A: Actualizar en modelo independiente `Ticket` (Si existe la colección)
+    if (typeof Ticket !== 'undefined') {
+      const ticketQuery = ticket_id 
+        ? { _id: ticket_id, apartment_id } 
+        : { apartment_id };
+
+      const ticketDoc = ticket_id 
+        ? await Ticket.findOne(ticketQuery)
+        : (await Ticket.find({ apartment_id }).sort({ createdAt: -1 }))[ticket_index];
+
+      if (ticketDoc) {
+        ticketDoc.status = status || 'Resuelto';
+        ticketDoc.host_response = host_response;
+        ticketDoc.updatedAt = new Date();
+        await ticketDoc.save();
+        ticketUpdated = true;
+      }
     }
 
-    property.pending_tickets[ticket_index].status = status;
-    property.pending_tickets[ticket_index].host_response = host_response;
+    // CASO B: Actualizar en el arreglo embebido `pending_tickets` dentro de `Apartment`
+    if (Array.isArray(property.pending_tickets) && property.pending_tickets[ticket_index] !== undefined) {
+      property.pending_tickets[ticket_index].status = status || 'Resuelto';
+      property.pending_tickets[ticket_index].host_response = host_response;
+      property.pending_tickets[ticket_index].updatedAt = new Date();
 
-    await property.save();
-    res.status(200).json({ success: true, message: '¡Ticket actualizado correctamente!' });
+      // Forzar a Mongoose a detectar cambios en subdocumentos/arreglos mixtos
+      property.markModified('pending_tickets');
+      await property.save();
+      ticketUpdated = true;
+    }
+
+    if (!ticketUpdated) {
+      return res.status(404).json({ error: 'Ticket no encontrado en la posición o ID especificado.' });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: '¡Ticket actualizado y respuesta guardada correctamente!' 
+    });
+
   } catch (error) {
     console.error('Error al actualizar ticket:', error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Error interno del servidor.' });
+  }
+});
+
+app.post('/api/guest/tickets', async (req, res) => {
+  try {
+    const { apartment_id, category, description } = req.body;
+
+    const property = await Property.findOne({ apartment_id });
+    if (!property) return res.status(404).json({ error: 'Apartamento no encontrado.' });
+
+    const newTicket = {
+      category: category || 'General',
+      description,
+      status: 'Pendiente',
+      host_response: '',
+      createdAt: new Date()
+    };
+
+    property.pending_tickets.push(newTicket);
+    await property.save();
+
+    return res.status(201).json({ message: 'Solicitud enviada al anfitrión', ticket: newTicket });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al registrar la solicitud.' });
+  }
+});
+
+app.post('/api/guest/selections', async (req, res) => {
+  try {
+    const { apartment_id, item_name, category, price } = req.body;
+
+    const property = await Property.findOne({ apartment_id });
+    if (!property) return res.status(404).json({ error: 'Apartamento no encontrado.' });
+
+    const newSelection = {
+      item_name,
+      category: category || 'Minibar',
+      price: price || 0,
+      createdAt: new Date()
+    };
+
+    property.guest_selections.push(newSelection);
+    await property.save();
+
+    return res.status(201).json({ message: 'Consumo registrado', selection: newSelection });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al registrar el consumo.' });
   }
 });
 
@@ -540,39 +630,76 @@ app.post('/api/owner/tickets/update', async (req, res) => {
 app.get('/api/owner/dashboard/:owner_id', async (req, res) => {
   try {
     const { owner_id } = req.params;
-    const apartments = await Apartment.find({ $or: [{ owner_id }, { ownerId: owner_id }] });
+
+    // 1. Obtener todos los apartamentos del anfitrión
+    const apartments = await Apartment.find({ 
+      $or: [{ owner_id }, { ownerId: owner_id }] 
+    });
+    
     const aptIds = apartments.map(a => a.apartment_id);
 
-    const tickets = await Ticket.find({ 
-      apartment_id: { $in: aptIds },
-      status: 'pending'
-    }).sort({ createdAt: -1 });
+    // 2. Consultar tickets y consumos asociados a esos apartamentos
+    // Se asume que existen los modelos Ticket y GuestSelection (o Selection)
+    const [tickets, selections] = await Promise.all([
+      Ticket.find({ apartment_id: { $in: aptIds } }).sort({ createdAt: -1 }),
+      GuestSelection.find({ apartment_id: { $in: aptIds } }).sort({ createdAt: -1 })
+    ]);
 
+    // 3. Mapear y estructurar la respuesta para el dashboard
     const dashboardData = apartments.map(apt => {
+      // Filtrar tickets del apartamento actual
       const aptTickets = tickets.filter(t => t.apartment_id === apt.apartment_id);
-      const hasIssues = aptTickets.some(t => t.type === 'issue');
-      const hasRequests = aptTickets.some(t => t.type === 'request');
+      
+      // Filtrar consumos/selecciones del apartamento actual
+      const aptSelections = selections.filter(s => s.apartment_id === apt.apartment_id);
 
-      let statusColor = 'Activo';
-      if (hasIssues) statusColor = 'Urgente';
-      else if (hasRequests) statusColor = 'Pendiente';
+      // Determinar estado de la propiedad dinámicamente
+      const pendingTickets = aptTickets.filter(t => t.status === 'Pendiente' || t.status === 'pending');
+      const hasIssues = pendingTickets.some(t => t.type === 'issue' || t.category === 'Queja');
+      
+      let statusColor = apt.status || 'Activo';
+      if (hasIssues) {
+        statusColor = 'Urgente';
+      } else if (pendingTickets.length > 0) {
+        statusColor = 'Pendiente';
+      }
 
       return {
         apartment_id: apt.apartment_id,
         name: apt.name,
         status: statusColor,
-        guest_url: apt.guest_url,
-        qr_code: apt.qr_code,
-        pending_tickets: aptTickets
+        wifi_config: apt.wifi_config || apt.wifi || 'Configurado',
+        instructions: apt.instructions || '',
+        rules: apt.rules || '',
+        ical_url: apt.ical_url || '',
+        guest_url: apt.guest_url || `https://huesped1.prestigecloser.com/guest.html?id=${apt.apartment_id}`,
+        qr_code: apt.qr_code || '',
+        // Formatear tickets para la interfaz
+        pending_tickets: aptTickets.map(t => ({
+          _id: t._id,
+          category: t.category || t.type || 'General',
+          description: t.description || t.message || '',
+          status: t.status === 'pending' ? 'Pendiente' : (t.status || 'Pendiente'),
+          host_response: t.host_response || t.response || '',
+          createdAt: t.createdAt
+        })),
+        // Formatear consumos/selecciones para la interfaz
+        guest_selections: aptSelections.map(s => ({
+          _id: s._id,
+          item_name: s.item_name || s.title || s.name || 'Selección',
+          category: s.category || 'Servicio/Minibar',
+          price: s.price || 0,
+          createdAt: s.createdAt
+        }))
       };
     });
 
     res.json({ dashboard: dashboardData });
   } catch (error) {
+    console.error('Error al obtener datos del dashboard:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
 // ==========================================
 // 5. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS Y VISTAS HTML (Al final de las rutas de API)
 // ==========================================
