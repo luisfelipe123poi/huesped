@@ -43,49 +43,85 @@ mongoose.connect(MONGO_URI)
 // 3. MODELOS DE DATOS Y CONFIGURACIÓN DE LIBRERÍAS
 // ==========================================
 
+const mongoose = require('mongoose');
+
+// 1. Esquema para Subdocumentos de Soporte / Quejas
+const TicketSchema = new mongoose.Schema({
+  apartment_id: { type: String, required: true },
+  type: { 
+    type: String, 
+    enum: ['question', 'request', 'issue', 'General', 'Duda', 'Queja'], 
+    default: 'question' 
+  },
+  category: { type: String, default: 'General' },
+  description: { type: String, required: true },
+  status: { 
+    type: String, 
+    enum: ['pending', 'in_progress', 'resolved', 'Pendiente', 'En Proceso', 'Resuelto'], 
+    default: 'Pendiente' 
+  },
+  host_response: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const Ticket = mongoose.model('Ticket', TicketSchema);
+
+// 2. Esquema para Consumos y Servicios del Huésped
+const GuestSelectionSchema = new mongoose.Schema({
+  apartment_id: { type: String, required: true },
+  item_name: { type: String, required: true },
+  category: { type: String, default: 'Minibar' },
+  price: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const GuestSelection = mongoose.model('GuestSelection', GuestSelectionSchema);
+
+// 3. Esquemas de Utilidades Internas del Apartamento
+const ApplianceSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  location: { type: String, default: '' },
+  instructions: { type: String, default: '' }
+});
+
+const FaqSchema = new mongoose.Schema({
+  question: { type: String, required: true },
+  answer: { type: String, required: true }
+});
+
+// 4. Esquema Principal de Propiedades / Apartamentos
 const ApartmentSchema = new mongoose.Schema({
   apartment_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   owner_id: { type: String, required: true },
   ownerId: { type: String },
+  status: { type: String, default: 'Activo' },
   wifi_config: { type: String, default: 'No configurado' },
   instructions: { type: String, default: '' },
   rules: { type: String, default: '' },
   ical_url: { type: String, default: '' },
   wifi: {
-    ssid: String,
-    pass: String
+    ssid: { type: String, default: '' },
+    pass: { type: String, default: '' }
   },
-  appliances: [{
-    name: String,
-    location: String,
-    instructions: String
-  }],
-  faqs: [{
-    question: String,
-    answer: String
-  }],
-  pending_tickets: { type: Array, default: [] },
-  guest_selections: { type: Array, default: [] },
-  guest_url: { type: String },
-  qr_code: { type: String },
+  appliances: [ApplianceSchema],
+  faqs: [FaqSchema],
+  // Integración de subdocumentos para permitir almacenamiento unificado o embebido
+  pending_tickets: [TicketSchema],
+  guest_selections: [GuestSelectionSchema],
+  guest_url: { type: String, default: '' },
+  qr_code: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
 const Apartment = mongoose.model('Apartment', ApartmentSchema);
 
-const TicketSchema = new mongoose.Schema({
-  apartment_id: { type: String, required: true },
-  type: { type: String, enum: ['question', 'request', 'issue'], required: true },
-  category: { type: String },
-  description: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'in_progress', 'resolved', 'Pendiente', 'En Proceso', 'Resuelto'], default: 'pending' },
-  host_response: { type: String, default: '' },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Ticket = mongoose.model('Ticket', TicketSchema);
-
+module.exports = {
+  Apartment,
+  Ticket,
+  GuestSelection
+};
 // ==========================================
 // FUNCIÓN PARA LEER EL iCAL DE AIRBNB
 // ==========================================
